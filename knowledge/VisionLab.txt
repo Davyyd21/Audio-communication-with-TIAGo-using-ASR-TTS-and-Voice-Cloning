@@ -1,0 +1,1 @@
+Vision Laboratory is dedicated to computer vision and image understanding. Research topics include object detection, image segmentation, facial recognition, 3D reconstruction and visual perception for autonomous systems. The laboratory uses high-resolution cameras, depth sensors, GPU workstations and machine learning frameworks for visual AI research.
