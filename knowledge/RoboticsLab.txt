@@ -1,1 +1,5 @@
-Robotics Laboratory focuses on autonomous robots, mobile robotics and human-robot interaction. Research includes robot navigation, SLAM, sensor fusion, motion planning and robotic manipulation. The laboratory contains collaborative robots, mobile robots, LiDAR sensors, RGB-D cameras and embedded computing platforms used for intelligent robotic applications.
+Robotics Laboratory focuses on autonomous robots, mobile robotics and human-robot interaction.
+
+Research includes robot navigation, SLAM, sensor fusion, motion planning and robotic manipulation.
+
+The laboratory contains collaborative robots, mobile robots, LiDAR sensors, RGB-D cameras and embedded computing platforms used for intelligent robotic applications.

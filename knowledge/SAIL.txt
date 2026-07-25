@@ -1,1 +1,11 @@
-SAIL (Smart Audio Intelligence Laboratory) is focused on audio signal processing, speech recognition, speaker identification and artificial intelligence. The laboratory develops machine learning solutions for audio analysis, voice assistants and embedded AI systems. Main equipment includes high-performance workstations, microphone arrays, audio interfaces, embedded development boards and acoustic measurement systems. Research is centered on automatic speech recognition, audio classification, deep learning and intelligent human-computer interaction.
+SAIL (Smart Audio Intelligence Laboratory) is focused on audio signal processing,
+
+speech recognition, speaker identification and artificial intelligence.
+ 
+The laboratory develops machine learning solutions for audio analysis, voice assistants and embedded AI systems.
+  
+Main equipment includes high-performance workstations, microphone arrays, audio interfaces,
+
+embedded development boards and acoustic measurement systems. Research is centered on automatic speech recognition,
+    
+audio classification, deep learning and intelligent human-computer interaction.

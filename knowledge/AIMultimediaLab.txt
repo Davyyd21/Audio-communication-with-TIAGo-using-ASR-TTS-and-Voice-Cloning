@@ -1,1 +1,7 @@
-AI Multimedia Lab develops artificial intelligence solutions for multimedia content, including image processing, computer vision, speech technologies and generative AI. Research focuses on deep learning, multimodal data analysis, object recognition, natural language processing and intelligent multimedia applications. The laboratory contains GPU servers, cameras, microphones and multimedia processing equipment.
+AI Multimedia Lab develops artificial intelligence solutions
+
+for multimedia content, including image processing, computer vision, speech technologies and generative AI.
+
+Research focuses on deep learning, multimodal data analysis, object recognition, natural language processing and intelligent multimedia applications.
+
+The laboratory contains GPU servers, cameras, microphones and multimedia processing equipment.

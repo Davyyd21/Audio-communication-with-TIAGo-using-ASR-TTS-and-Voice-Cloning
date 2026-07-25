@@ -1,1 +1,7 @@
-Smart Systems Laboratory develops intelligent electronic systems combining sensors, embedded software and artificial intelligence. Research areas include smart devices, environmental monitoring, predictive maintenance and intelligent automation. The laboratory is equipped with microcontrollers, embedded processors, sensor platforms and data acquisition systems.
+Smart Systems Laboratory develops intelligent electronic systems combining sensors,
+
+embedded software and artificial intelligence. Research areas include smart devices,
+ 
+environmental monitoring, predictive maintenance and intelligent automation.
+  
+The laboratory is equipped with microcontrollers, embedded processors, sensor platforms and data acquisition systems.

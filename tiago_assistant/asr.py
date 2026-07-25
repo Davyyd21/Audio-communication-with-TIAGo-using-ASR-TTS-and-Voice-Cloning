@@ -21,7 +21,7 @@ class ASR:
             fp16=False, #aparent fp16 este doar pentru rularea pe GPU
         )
 
-        text = result["text"].strip()
+        text = result["text"].strip() #elimina spatiile goale dintr-un sir de caractere asa " wow " -> "wow"
 
         if not text:
             raise ValueError("Whisper returned an empty transcription.")

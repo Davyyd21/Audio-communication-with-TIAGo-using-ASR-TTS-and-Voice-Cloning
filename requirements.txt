@@ -3,3 +3,5 @@ torch
 soundfile
 numpy
 rapidfuzz
+google-genai
+python-dotenv

@@ -114,16 +114,17 @@ class ContextSelector:
     @staticmethod
     def normalize_text(text: str) -> str:
         #modificam textul nostru ca sa-i fie mai usor de procesat si identificat sintagma dorita
+        #practic comparam textul fără să conteze majuscule, diacritice sau punctuație
         text = text.lower().strip()
 
         text = unicodedata.normalize("NFD", text)
         text = "".join(
             character
             for character in text
-            if unicodedata.category(character) != "Mn"
-        )
+            if unicodedata.category(character) != "Mn"#Mark/Nonspacing
+        )#am eliminat diacriticele
 
-        text = re.sub(r"[^a-z0-9\s]", " ", text)
+        text = re.sub(r"[^a-z0-9\s]", " ", text)#tot ce nu se incadreaza in categoriile de caractere mici respectiv cifre sa fie inlocuite cu spatiu gol
         text = re.sub(r"\s+", " ", text)
 
         return text.strip()
@@ -161,7 +162,7 @@ class ContextSelector:
                     best_score = score
                     best_laboratory = laboratory_name
 
-        if best_score >= self.fuzzy_threshold:
+        if best_score >= self.fuzzy_threshold: #daca am depasit un scor acolo de similitudine ala e lab-ul cautat
             return best_laboratory
 
         return None
@@ -199,7 +200,21 @@ class ContextSelector:
                 f"Knowledge file is empty: {file_path}"
             )
 
-        return context
+        return context  #in caz ca fisierul a fost gasit la path-ul respectiv atunci ii returneaza continutul/descrierea lab-ului
+    
+
+    def get_context_by_laboratory(self,laboratory_name: str,)->tuple[str, str]:
+        """
+        Încarcă informațiile unui laborator deja cunoscut.
+
+        Este folosită pentru întrebările de continuare, când întrebarea
+        curentă nu mai conține explicit numele laboratorului.
+        """
+
+        context = self.load_context(laboratory_name)
+
+        return laboratory_name, context
+
 
     def get_context(self,question: str,) -> tuple[str | None, str | None]:
         laboratory_name = self.detect_laboratory(question)
@@ -209,4 +224,4 @@ class ContextSelector:
 
         context = self.load_context(laboratory_name)
 
-        return laboratory_name, context
+        return laboratory_name, context #returneaza tuplul gasit in caz ca a aparut vreun match

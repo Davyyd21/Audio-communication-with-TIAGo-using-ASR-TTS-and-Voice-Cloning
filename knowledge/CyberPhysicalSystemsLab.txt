@@ -1,1 +1,7 @@
-Cyber Physical Systems Laboratory studies intelligent embedded systems integrating computation, communication and physical processes. Research includes IoT, industrial automation, smart sensors, real-time systems and distributed control. Equipment consists of embedded boards, FPGA platforms, industrial controllers and wireless sensor networks.
+Cyber Physical Systems Laboratory studies intelligent embedded systems
+
+integrating computation, communication and physical processes.
+
+Research includes IoT, industrial automation, smart sensors, real-time systems and distributed control.
+
+Equipment consists of embedded boards, FPGA platforms, industrial controllers and wireless sensor networks.
