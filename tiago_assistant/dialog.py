@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-
+#acesta este al 7-lea fisier in logica programului si e urmat iar de conversation.py
 class Dialog:
     #trimite promptul catre Gemini și returneaza raspunsul text
     #clasa nu construieste promptul si nu gestioneaza istoricul

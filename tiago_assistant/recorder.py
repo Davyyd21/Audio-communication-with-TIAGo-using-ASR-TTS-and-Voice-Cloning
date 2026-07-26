@@ -3,24 +3,20 @@ from pathlib import Path
 import sounddevice as sd
 import soundfile as sf
 
-
+#asta e primul fisier in pipeline-ul implementat
 class AudioRecorder:
     """
-    Înregistrează sunet de la microfon și îl salvează
-    într-un fișier WAV.
+    inregistrează sunet de la microfon si il salveaza
+    intr-un fișier WAV
     """
 
-    def __init__(
-        self,
-        sample_rate: int = 16000,
-        channels: int = 1,
-    ) -> None:
-        if sample_rate <= 0:
+    def __init__(self,sample_rate: int = 16000,channels: int = 1,)->None:
+        if sample_rate <= 0:#perioada de esantionare
             raise ValueError(
                 "Sample rate must be greater than zero."
             )
 
-        if channels <= 0:
+        if channels <= 0:# sa fie mono eventual sau poate si stereo daca vrem
             raise ValueError(
                 "Number of channels must be greater than zero."
             )
@@ -28,26 +24,9 @@ class AudioRecorder:
         self.sample_rate = sample_rate
         self.channels = channels
 
-    def record(
-        self,
-        output_path: str | Path,
-        duration: float,
-    ) -> Path:
-        """
-        Înregistrează sunet pentru numărul de secunde primit
-        și salvează rezultatul ca fișier WAV.
-
-        Parametri:
-            output_path:
-                Calea unde va fi salvat fișierul WAV.
-
-            duration:
-                Durata înregistrării, în secunde.
-
-        Returnează:
-            Calea fișierului WAV salvat.
-        """
-
+    def record(self,output_path: str | Path,duration: float,)->Path:
+        
+        #inregistreaza sunet pentru numarul de secunde primit si salveaza rezultatul ca fișier WAV
         if duration <= 0:
             raise ValueError(
                 "Recording duration must be greater than zero."
@@ -79,10 +58,7 @@ class AudioRecorder:
             sd.wait()
 
         except Exception as error:
-            raise RuntimeError(
-                "Audio recording failed. Check the microphone "
-                "and the selected Windows input device."
-            ) from error
+            raise RuntimeError("Audio recording failed. Check the microphone and the selected Windows input device.") from error
 
         try:
             sf.write(

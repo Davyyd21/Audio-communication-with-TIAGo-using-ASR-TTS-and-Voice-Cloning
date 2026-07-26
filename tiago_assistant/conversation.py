@@ -1,10 +1,12 @@
 class Conversation:
     """
-    Păstrează istoricul conversației curente și laboratorul activ.
-    Istoricul este păstrat doar în memoria RAM.
-    Când aplicația se închide, istoricul este pierdut.
+    pastreaza istoricul conversatiei curente si laboratorul activ
+    istoricul este pastrat doar în memoria RAM
+    cand aplicatia se inchide, istoricul este pierdut
+    istoricul vechi este sters ca sa nu se umple foarte mult structura care retine
+    ori ce a zis omul ori ce a raspuns chatbot-ul
     """
-
+#also asta e al 4-lea fisier in logica implmentata in program(pastreaza laboratorul activ) dar fisiereul apare si dupa dialog.py pentru salvarea continutului conversatiei(intrebarea omului+raspunsul chat-ului)
     def __init__(self, max_messages: int = 10):
         if max_messages <= 0:
             raise ValueError("max_messages must be greater than zero.")

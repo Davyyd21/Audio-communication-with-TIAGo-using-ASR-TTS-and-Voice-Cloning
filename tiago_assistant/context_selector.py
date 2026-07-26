@@ -4,7 +4,7 @@ import unicodedata
 
 from rapidfuzz import fuzz
 
-
+#asta e al treilea fisier in pipeline
 class ContextSelector:
     LABORATORIES = {
         "SAIL": {
@@ -93,11 +93,7 @@ class ContextSelector:
         },
     }
 
-    def __init__(
-        self,
-        knowledge_directory: str | Path = "knowledge",
-        fuzzy_threshold: int = 80,
-    ):
+    def __init__(self,knowledge_directory: str | Path = "knowledge",fuzzy_threshold: int = 80,):
         self.knowledge_directory = Path(knowledge_directory)
         self.fuzzy_threshold = fuzzy_threshold
 
@@ -132,7 +128,7 @@ class ContextSelector:
     def detect_exact_match(self, question: str) -> str | None:
         normalized_question = self.normalize_text(question)
 
-        for laboratory_name, laboratory_info in self.LABORATORIES.items():
+        for laboratory_name, laboratory_info in self.LABORATORIES.items():#cautam prin tot dictionarul nostru
             for alias in laboratory_info["aliases"]:
                 normalized_alias = self.normalize_text(alias)
 
@@ -205,10 +201,10 @@ class ContextSelector:
 
     def get_context_by_laboratory(self,laboratory_name: str,)->tuple[str, str]:
         """
-        Încarcă informațiile unui laborator deja cunoscut.
-
-        Este folosită pentru întrebările de continuare, când întrebarea
-        curentă nu mai conține explicit numele laboratorului.
+        incarcă informatiile unui laborator deja cunoscut si e
+        folosită pentru intrebarile de continuare, cand intrebarea
+        curenta nu mai contine explicit numele laboratorului
+        adica sa zicem ca intrebam "ce echipamente are?"
         """
 
         context = self.load_context(laboratory_name)

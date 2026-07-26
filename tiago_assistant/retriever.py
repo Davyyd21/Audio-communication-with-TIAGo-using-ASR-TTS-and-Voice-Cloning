@@ -5,42 +5,47 @@ from pathlib import Path
 
 from rapidfuzz import fuzz
 
+#asta e al 5-lea program in logica pipeline-ului nostru
 
+'''
+Programul e un mini-RAG(Retrieval-Augmented Generation) simplu pentru un chatbot despre laboratoare.
+Clasa Retriever incarca fisiere .txt dintr-un folder, le imparte in fragmente (paragrafe curatate).
+Pentru o intrebare data, calculeaza un scor de relevanta pentru fiecare fragment
+(combinatie de cuvinte cheie comune, fuzzy matching si potrivire partiala),
+filtreaza sub un prag minim si returneaza top-K fragmente, plus vecinii lor (paragraful de dinainte/dupa)
+ca sa nu piarda context. Poate filtra dupa un laborator anume (potrivire fuzzy pe numele fisierului),
+poate detecta intrebari de tip "prezentare generala" si poate returna toate fragmentele unui laborator.
+La final formateaza rezultatele intr-un text gata de trimis catre un prompt.Toate astea le facem pentru ca la
+inceput imi returna intregul fisier tradus eventual in romana,iar cand l-am segmentat manual si am pus 
+cate un rand liber in fisierele txt chatbotul imi zicea propozitia si cand dadea de acel rand liber zicea ca nu
+dispune de informatiile necesare,acum doar segmentam fragmentele si le putem lua si pe bucati ca sa trimitem catre prompt
+informatia de care are nevoie,ma refer la aia relevanta intrebarii noastre
+'''
 @dataclass(frozen=True)
 class KnowledgeChunk:
     """
-    Reprezintă un fragment încărcat dintr-un fișier din knowledge.
+    reprezinta o bucata dintr-un fisier din knowledge adica sa nu mai luam toata descrierea lab-ului ci sa il segmentam
+    cat mai mult ca sa ofere strict informatiile pe care i le cerem nu sa aiureasca pe acolo sa-mi zica si de echipamente
+    cand eu ii cer doar sa-mi zica domeniile de cercetare
     """
-
     source: str
     text: str
     position: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True)#obiectul nu mai poate fi modificat dupa creare
 class SearchResult:
     """
-    Reprezintă un rezultat întors de Retriever.
+    e exact ce intoarce retriever-ul
     """
-
     source: str
     text: str
-    score: float
+    score: float #relevanta fragmentului gasit fata de intrebarea pe care i-am pus-o noi
     position: int
 
 
-class Retriever:
-    """
-    Încarcă fișierele .txt din directorul knowledge și caută
-    fragmente relevante pentru întrebarea utilizatorului.
-
-    Retriever-ul poate:
-    - căuta într-un singur laborator;
-    - căuta în toate laboratoarele;
-    - returna toate fragmentele unui laborator;
-    - include fragmentele vecine unui rezultat;
-    - formata rezultatele pentru PromptBuilder.
-    """
+class Retriever:#varianta mai easy de RAG
+    #incarca fisierele txt din knowledge si cauta fragmente relevante pentru intrebarea omului
 
     ROMANIAN_STOP_WORDS = {
         "a",
@@ -113,11 +118,7 @@ class Retriever:
         "overview",
     )
 
-    def __init__(
-        self,
-        knowledge_directory: str | Path,
-        minimum_score: float = 0.18,
-    ) -> None:
+    def __init__(self,knowledge_directory: str | Path,minimum_score: float = 0.18,)->None:#ignoram fragmentele cu scor de relevanta mic
         self.knowledge_directory = Path(
             knowledge_directory
         )
@@ -145,35 +146,26 @@ class Retriever:
             )
 
     def _load_chunks(self) -> list[KnowledgeChunk]:
-        """
-        Încarcă toate fișierele .txt și le împarte în fragmente.
-
-        Un fragment este, în mod normal, un paragraf delimitat
-        printr-un rând gol.
-        """
-
+        #incarcam acolo fisierele txt si le impartim in fragmente,asta oricum am incercat sa o fac prin modul cum am formatat fisierele txt
+        
         chunks: list[KnowledgeChunk] = []
 
         file_paths = sorted(
-            self.knowledge_directory.rglob("*.txt")
+            self.knowledge_directory.rglob("*.txt")#cauta in sub-tree fisierele
         )
 
         for file_path in file_paths:
             try:
-                content = file_path.read_text(
-                    encoding="utf-8"
-                ).strip()
+                content = file_path.read_text(encoding="utf-8").strip()
             except UnicodeDecodeError as error:
-                raise ValueError(
-                    f"Could not read {file_path} as UTF-8."
-                ) from error
+                raise ValueError(f"Could not read {file_path} as UTF-8.") from error
 
             if not content:
                 continue
 
             raw_paragraphs = re.split(
                 r"\n\s*\n",
-                content,
+                content,  #impartim fisierele in paragrafe
             )
 
             position = 0
@@ -200,11 +192,7 @@ class Retriever:
 
     @staticmethod
     def _clean_chunk_text(text: str) -> str:
-        """
-        Elimină spațiile și liniile inutile dintr-un fragment,
-        păstrând conținutul într-o formă compactă.
-        """
-
+        #elimina spatiile si liniile inutile din fragment
         lines = [
             line.strip()
             for line in text.splitlines()
@@ -215,15 +203,7 @@ class Retriever:
 
     @staticmethod
     def normalize(text: str) -> str:
-        """
-        Normalizează un text pentru comparații.
-
-        Exemplu:
-            "Învățare Artificială"
-        devine:
-            "invatare artificiala"
-        """
-
+        #pregatim textele pentru comparatie, sa n-avem punctuatie,diacritice,litere mari in litere mici
         normalized_text = text.lower().strip()
 
         normalized_text = unicodedata.normalize(
@@ -237,25 +217,15 @@ class Retriever:
             if unicodedata.category(character) != "Mn"
         )
 
-        normalized_text = re.sub(
-            r"[^a-z0-9\s]",
-            " ",
-            normalized_text,
-        )
+        normalized_text = re.sub(r"[^a-z0-9\s]"," ",normalized_text,)
 
         return " ".join(
             normalized_text.split()
         )
 
-    def _extract_keywords(
-        self,
-        text: str,
-    ) -> set[str]:
-        """
-        Extrage cuvintele utile pentru compararea întrebării
-        cu fragmentele.
-        """
-
+    def _extract_keywords(self,text: str,)->set[str]:
+        #extragem doar cuvintele utile pentru a compara intrebarea cu fragmentele extrase din fisierele txt
+        #de ex echipamente, SIGMA etc
         normalized_text = self.normalize(text)
 
         return {
@@ -265,126 +235,59 @@ class Retriever:
             and word not in self.ROMANIAN_STOP_WORDS
         }
 
-    def _calculate_score(
-        self,
-        question: str,
-        chunk_text: str,
-    ) -> float:
-        """
-        Calculează scorul dintre întrebare și fragment.
-
-        Scorul combină:
-        - proporția cuvintelor-cheie comune;
-        - similaritatea fuzzy;
-        - similaritatea dintre seturile de tokeni.
-        """
+    def _calculate_score(self,question: str,chunk_text: str,)->float:
+        #calculam scorul dintre intrebare si fragment---->keyword-uri comune+fuzzy similarity+similaritatea 
+        #intre "tokenii" care alcatuiesc cuvintele
 
         normalized_question = self.normalize(question)
         normalized_chunk = self.normalize(chunk_text)
 
-        question_keywords = self._extract_keywords(
-            question
-        )
+        question_keywords = self._extract_keywords(question)
 
-        chunk_keywords = self._extract_keywords(
-            chunk_text
-        )
+        chunk_keywords = self._extract_keywords(chunk_text)
 
         if not normalized_question:
             return 0.0
 
         if question_keywords:
-            common_keywords = (
-                question_keywords & chunk_keywords
-            )
+            common_keywords = (question_keywords & chunk_keywords)
 
-            keyword_score = (
-                len(common_keywords)
-                / len(question_keywords)
-            )
+            keyword_score = (len(common_keywords) / len(question_keywords))
         else:
             keyword_score = 0.0
 
-        token_set_score = (
-            fuzz.token_set_ratio(
-                normalized_question,
-                normalized_chunk,
-            )
-            / 100
-        )
+        token_set_score = (fuzz.token_set_ratio(normalized_question,normalized_chunk,) / 100)
 
-        partial_score = (
-            fuzz.partial_ratio(
-                normalized_question,
-                normalized_chunk,
-            )
-            / 100
-        )
+        partial_score = (fuzz.partial_ratio(normalized_question,normalized_chunk,) / 100)
+        #verifica daca intrebarea sau o parte asemanatoare apare în textul mai lung
+        final_score = (0.55 * keyword_score + 0.30 * token_set_score + 0.15 * partial_score)
+        #am dat diverse ponderi de importanta pentru scoruri, cele mai importante sunt cuvintele cheie
 
-        final_score = (
-            0.55 * keyword_score
-            + 0.30 * token_set_score
-            + 0.15 * partial_score
-        )
+        return min(final_score, 1.0)#totusi proportia sa nu depaseasca 1
 
-        return min(final_score, 1.0)
-
-    def _matches_laboratory(
-        self,
-        source: str,
-        laboratory_name: str,
-    ) -> bool:
-        """
-        Verifică dacă numele sursei corespunde laboratorului.
-
-        Acceptă diferențe precum:
-            AIMultimediaLab
-            AI Multimedia Lab
-        """
+    def _matches_laboratory(self,source: str,laboratory_name: str,)->bool:
+        #prin asta retriever-ul cauta doar in laboratorul activ si verifica daca fisierul respectiv corespunde laboratorului activ
 
         normalized_source = self.normalize(source)
-        normalized_laboratory = self.normalize(
-            laboratory_name
-        )
+        normalized_laboratory = self.normalize(laboratory_name)
 
-        compact_source = normalized_source.replace(
-            " ",
-            "",
-        )
+        compact_source = normalized_source.replace(" ","",)
 
-        compact_laboratory = (
-            normalized_laboratory.replace(
-                " ",
-                "",
-            )
-        )
+        compact_laboratory = (normalized_laboratory.replace(" ","",))
 
         if compact_source == compact_laboratory:
             return True
 
-        if (
-            compact_source in compact_laboratory
-            or compact_laboratory in compact_source
-        ):
+        if (compact_source in compact_laboratory or compact_laboratory in compact_source):
             return True
 
-        similarity = fuzz.ratio(
-            compact_source,
-            compact_laboratory,
-        )
+        similarity = fuzz.ratio(compact_source,compact_laboratory,)
 
-        return similarity >= 72
+        return similarity >= 72#am ales un nr random destul de mare ca threshold
 
-    def is_general_presentation_question(
-        self,
-        question: str,
-    ) -> bool:
-        """
-        Detectează întrebările care cer o prezentare generală.
-
-        Pentru acestea este mai util să trimitem toate fragmentele
-        laboratorului, nu doar cele mai apropiate lexical.
-        """
+    def is_general_presentation_question(self,question: str,)->bool:
+        #detecteaza intrebarile care cer o prezentare generala adk nu doar asa pe un fragmentel,ci sa prezinte tot lab-ul
+        #trimitem toate fragmentele nu doar cele apropiate "lexical"
 
         normalized_question = self.normalize(
             question
@@ -395,23 +298,17 @@ class Retriever:
             for pattern in self.GENERAL_PRESENTATION_PATTERNS
         )
 
-    def search(
-        self,
-        question: str,
-        laboratory_name: str | None = None,
-        top_k: int = 3,
-        include_neighbors: bool = True,
-    ) -> list[SearchResult]:
-        """
-        Caută fragmente relevante.
+    def search(self,question: str,laboratory_name: str | None = None,top_k: int = 3,include_neighbors: bool = True,)->list[SearchResult]:
+        #cautam doar fragmentele relevante,daca avem numele lab-ului cautarea e limitata doar la fisierul lab-ului
+        '''
+        pentru fiecare fragment:
 
-        Dacă laboratory_name este oferit, căutarea este limitată
-        la laboratorul respectiv.
-
-        include_neighbors=True adaugă fragmentele aflate imediat
-        înaintea și după rezultatele principale.
-        """
-
+        verifica daca apartine laboratorului cerut;
+        calculeaza scorul;
+        elimina rezultatele sub minimum_score;
+        sorteaza rezultatele descrescator;
+        pastreaza primele top_k.
+        '''
         if not question or not question.strip():
             return []
 
@@ -421,19 +318,10 @@ class Retriever:
         scored_results: list[SearchResult] = []
 
         for chunk in self.chunks:
-            if (
-                laboratory_name is not None
-                and not self._matches_laboratory(
-                    chunk.source,
-                    laboratory_name,
-                )
-            ):
+            if (laboratory_name is not None and not self._matches_laboratory(chunk.source,laboratory_name,)):
                 continue
 
-            score = self._calculate_score(
-                question,
-                chunk.text,
-            )
+            score = self._calculate_score(question,chunk.text,)
 
             if score < self.minimum_score:
                 continue
@@ -461,24 +349,14 @@ class Retriever:
             main_results
         )
 
-    def _add_neighbor_chunks(
-        self,
-        main_results: list[SearchResult],
-    ) -> list[SearchResult]:
-        """
-        Adaugă fragmentele vecine rezultatelor principale.
-
-        Vecinii primesc un scor puțin mai mic decât fragmentul
-        principal pentru a păstra ordinea informațiilor.
-        """
+    def _add_neighbor_chunks(self,main_results: list[SearchResult],)->list[SearchResult]:
+        #poate fragmentele vecine celui gasit contin si ele informatii importante si sa nu rupem informatia
+        
 
         if not main_results:
             return []
 
-        collected_results: dict[
-            tuple[str, int],
-            SearchResult,
-        ] = {}
+        collected_results: dict[tuple[str, int],SearchResult,]={}
 
         for result in main_results:
             main_key = (
@@ -489,10 +367,7 @@ class Retriever:
             collected_results[main_key] = result
 
             for neighbor_offset in (-1, 1):
-                neighbor_position = (
-                    result.position
-                    + neighbor_offset
-                )
+                neighbor_position = (result.position + neighbor_offset)
 
                 neighbor = self._find_chunk(
                     source=result.source,
@@ -537,43 +412,26 @@ class Retriever:
 
         return ordered_results
 
-    def _find_chunk(
-        self,
-        source: str,
-        position: int,
-    ) -> KnowledgeChunk | None:
-        """
-        Găsește un fragment folosind sursa și poziția sa.
-        """
+    def _find_chunk(self,source: str,position: int,)->KnowledgeChunk | None:
 
         for chunk in self.chunks:
-            if (
-                chunk.source == source
-                and chunk.position == position
-            ):
+            if (chunk.source == source and chunk.position == position):
                 return chunk
 
         return None
 
-    def get_laboratory_chunks(
-        self,
-        laboratory_name: str,
-        max_chunks: int | None = None,
-    ) -> list[SearchResult]:
+    def get_laboratory_chunks(self,laboratory_name: str,max_chunks: int | None = None,)->list[SearchResult]:
         """
-        Returnează toate fragmentele laboratorului.
+        returneaza toate fragmentele laboratorului->
 
-        Este folosit pentru:
-        - prezentări generale;
-        - întrebări de continuare pentru care căutarea lexicală
-          nu găsește rezultate;
-        - situații în care utilizatorul spune doar
-          „ce echipamente are?”.
+        este folosit pentru:
+        1.prezentari generale
+        2.intrebari de continuare pentru care cautarea lexicala
+        3.nu gaseste rezultate
+        4.situatii in care utilizatorul spune doar „ia zi ce echipamente are?”
         """
 
-        matching_chunks = [
-            chunk
-            for chunk in self.chunks
+        matching_chunks = [chunk for chunk in self.chunks
             if self._matches_laboratory(
                 chunk.source,
                 laboratory_name,
@@ -599,15 +457,8 @@ class Retriever:
             for chunk in matching_chunks
         ]
 
-    def has_laboratory(
-        self,
-        laboratory_name: str,
-    ) -> bool:
-        """
-        Verifică dacă există cel puțin un fișier sau fragment
-        pentru laboratorul dat.
-        """
-
+    def has_laboratory(self,laboratory_name: str,)->bool:
+        #verificam daca avem un fisier txt pentru laboratorul cautat
         return any(
             self._matches_laboratory(
                 chunk.source,
@@ -617,23 +468,17 @@ class Retriever:
         )
 
     @staticmethod
-    def format_results(
-        results: list[SearchResult],
-    ) -> str | None:
+    def format_results(results: list[SearchResult],) -> str | None:
         """
         Transformă rezultatele într-un context textual
         pentru PromptBuilder.
         """
-
         if not results:
             return None
 
         formatted_chunks: list[str] = []
 
-        for index, result in enumerate(
-            results,
-            start=1,
-        ):
+        for index, result in enumerate(results,start=1,):
             formatted_chunks.append(
                 f"[Fragment {index}]\n"
                 f"Source: {result.source}\n"

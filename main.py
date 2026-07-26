@@ -12,17 +12,14 @@ from tiago_assistant.retriever import Retriever, SearchResult
 
 def parse_arguments() -> argparse.Namespace:
     """
-    Citește opțiunile primite din terminal.
-
-    Exemplu:
+    citeste optiunile primite din terminal
+    Ex:
         python main.py --model base --language ro --duration 7
     """
 
     parser = argparse.ArgumentParser(
         description=(
-            "Record microphone audio, transcribe it with Whisper, "
-            "retrieve laboratory information and generate a "
-            "Gemini response."
+            "Record microphone audio, transcribe it with Whisper, retrieve laboratory information and generate a Gemini response."
         )
     )
 
@@ -89,11 +86,9 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def print_search_results(
-    results: list[SearchResult],
-) -> None:
+def print_search_results(results: list[SearchResult],)->None:
     """
-    Afișează fragmentele selectate de Retriever.
+    afiseaza fragmentele selectate de Retriever
     """
 
     if not results:
@@ -110,28 +105,20 @@ def print_search_results(
         )
 
 
-def retrieve_context(
-    question: str,
-    active_laboratory: str | None,
-    retriever: Retriever,
-    top_k: int = 3,
-) -> list[SearchResult]:
+def retrieve_context(question: str,active_laboratory: str | None,retriever: Retriever,top_k: int = 3,)->list[SearchResult]:
     """
-    Selectează fragmentele care trebuie trimise către Gemini.
+    selecteaza fragmentele care trebuie trimise catre Gemini.
 
-    Strategia:
+    practic facem asa:
 
-    1. Pentru o prezentare generală sunt luate toate
+    1. Pentru o prezentare generala sunt luate toate
        fragmentele laboratorului activ.
-
-    2. Pentru o întrebare specifică sunt căutate fragmentele
+    2. Pentru o intrebare specifica sunt cautate fragmentele
        cele mai relevante din laboratorul activ.
-
-    3. Dacă nu există rezultate, sunt folosite toate
+    3. Daca nu exista rezultate, sunt folosite toate
        fragmentele laboratorului activ.
-
-    4. Dacă nu există laborator activ, căutarea se face
-       în toate fișierele.
+    4. Daca nu exista laborator activ, cautarea se face
+       in toate fisierele.
     """
 
     if active_laboratory is not None:
@@ -182,9 +169,9 @@ def process_transcription(
     dialog: Dialog,
 ) -> None:
     """
-    Procesează o întrebare deja transcrisă.
+    proceseaza o intrebare deja transcrisa
 
-    Flux:
+    Flow-ul e asa:
         text
         -> detectare laborator
         -> Retriever
@@ -196,9 +183,7 @@ def process_transcription(
     cleaned_transcription = transcription.strip()
 
     if not cleaned_transcription:
-        print(
-            "\nWhisper did not detect any usable speech."
-        )
+        print("\nWhisper did not detect any usable speech.")
         return
 
     print("\nTranscription:")
@@ -282,26 +267,6 @@ def process_transcription(
 
 
 def main() -> None:
-    """
-    Rulează conversația audio continuă.
-
-    La fiecare iterație:
-
-        utilizatorul apasă Enter
-            ↓
-        microfonul înregistrează
-            ↓
-        Whisper transcrie
-            ↓
-        Retriever caută informații
-            ↓
-        Gemini răspunde
-            ↓
-        conversația este păstrată
-            ↓
-        programul așteaptă următoarea întrebare
-    """
-
     args = parse_arguments()
 
     if args.duration <= 0:
@@ -341,9 +306,7 @@ def main() -> None:
     prompt_builder = PromptBuilder()
     dialog = Dialog()
 
-    recording_path = Path(
-        args.output
-    )
+    recording_path = Path(args.output)
 
     print("\nTIAGo assistant started.")
     print(
@@ -395,9 +358,7 @@ def main() -> None:
             )
 
             if active_laboratory is None:
-                print(
-                    "\nNo laboratory is currently active.\n"
-                )
+                print("\nNo laboratory is currently active.\n")
             else:
                 print(
                     f"\nActive laboratory: "

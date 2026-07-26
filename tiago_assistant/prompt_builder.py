@@ -1,17 +1,17 @@
 from typing import Any
 
-
+#asta e al 6-lea program in logica programului nostru
 class PromptBuilder:
     """
-    Construiește promptul complet trimis modelului Gemini.
+    construieste promptul complet trimis modelului Gemini.
 
     Promptul conține:
-    - rolul asistentului;
-    - regulile de răspuns;
-    - laboratorul activ;
-    - contextul găsit de Retriever;
-    - istoricul conversației;
-    - întrebarea curentă.
+    -rolul asistentului;
+    -regulile de raspuns;
+    -laboratorul activ;
+    -contextul gasit de Retriever;
+    -istoricul conversatiei;
+    -intrebarea curenta.
     """
 
     LANGUAGE_NAMES = {
@@ -19,42 +19,21 @@ class PromptBuilder:
         "en": "English",
     }
 
-    def build(
-        self,
-        question: str,
-        laboratory_name: str | None,
-        laboratory_context: str | None,
-        conversation_history: list[
-            dict[str, Any]
-        ],
-        language: str = "ro",
-    ) -> str:
+    def build(self,question: str,laboratory_name: str | None,laboratory_context: str | None,conversation_history: list[dict[str, Any]],language: str = "ro",)->str:
         """
-        Construiește promptul final.
-
-        Parametri:
-            question:
-                Întrebarea curentă.
-
-            laboratory_name:
-                Laboratorul activ sau None.
-
-            laboratory_context:
-                Fragmentele relevante găsite în knowledge.
-
-            conversation_history:
-                Mesajele anterioare ale conversației.
-
-            language:
-                Limba răspunsului.
+        construieste promptul final.
+        parametrii sunt:
+            question: intrebarea curenta
+            laboratory_name: laboratorul activ sau None.
+            laboratory_context: fragmentele relevante gasite in knowledge.
+            conversation_history: mesajele anterioare ale conversatiei.
+            language: limba raspunsului.
         """
 
         cleaned_question = question.strip()
 
         if not cleaned_question:
-            raise ValueError(
-                "Question cannot be empty."
-            )
+            raise ValueError("Question cannot be empty.")
 
         response_language = (
             self.LANGUAGE_NAMES.get(
@@ -265,36 +244,17 @@ Return only the final answer intended for the user.
 """.strip()
 
     @staticmethod
-    def _format_conversation_history(
-        conversation_history: list[
-            dict[str, Any]
-        ],
-    ) -> str:
-        """
-        Formatează istoricul conversației într-un text
-        ușor de interpretat de model.
-        """
-
+    def _format_conversation_history(conversation_history: list[dict[str, Any]],)->str:
+        #formateaza istoricul conversatiei intr-un textusor de interpretat de model
         if not conversation_history:
             return "No previous conversation."
 
         formatted_messages: list[str] = []
 
         for message in conversation_history:
-            role = str(
-                message.get(
-                    "role",
-                    "unknown",
-                )
-            ).strip().lower()
+            role = str(message.get("role","unknown",)).strip().lower()
 
-            content = str(
-                message.get(
-                    "content",
-                    "",
-                )
-            ).strip()
-
+            content = str(message.get("content","",)).strip()
             if not content:
                 continue
 
@@ -305,9 +265,7 @@ Return only the final answer intended for the user.
             else:
                 role_name = role.capitalize()
 
-            formatted_messages.append(
-                f"{role_name}: {content}"
-            )
+            formatted_messages.append(f"{role_name}: {content}")
 
         if not formatted_messages:
             return "No previous conversation."
