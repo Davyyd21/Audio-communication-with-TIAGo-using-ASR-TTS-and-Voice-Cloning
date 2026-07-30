@@ -5,3 +5,4 @@ numpy
 rapidfuzz
 google-genai
 python-dotenv
+xtts2
