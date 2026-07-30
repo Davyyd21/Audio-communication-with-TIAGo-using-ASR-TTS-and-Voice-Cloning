@@ -1,0 +1,14 @@
+name: tiago-audio
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - ffmpeg
+  - pip
+  - pip:
+      - openai-whisper
+      - sounddevice
+      - soundfile
+      - numpy

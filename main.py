@@ -8,6 +8,7 @@ from tiago_assistant.dialog import Dialog
 from tiago_assistant.prompt_builder import PromptBuilder
 from tiago_assistant.recorder import AudioRecorder
 from tiago_assistant.retriever import Retriever, SearchResult
+from tiago_assistant.tts import XTTS
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -19,7 +20,9 @@ def parse_arguments() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Record microphone audio, transcribe it with Whisper, retrieve laboratory information and generate a Gemini response."
+            "Record microphone audio, transcribe it with Whisper, "
+            "retrieve laboratory information, generate a Gemini "
+            "response and synthesize it with XTTS."
         )
     )
 
@@ -32,7 +35,19 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--language",
         default="ro",
-        help="Audio and response language. Default: ro.",
+        help=(
+            "Language spoken by the user and used by Whisper. "
+            "Default: ro."
+        ),
+    )
+
+    parser.add_argument(
+        "--response-language",
+        default="en",
+        help=(
+            "Language used by Gemini for the response. "
+            "XTTS-v2 supports English. Default: en."
+        ),
     )
 
     parser.add_argument(
@@ -83,10 +98,30 @@ def parse_arguments() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--reference-audio",
+        default="samples/reference/david.wav",
+        help=(
+            "Reference WAV file used by XTTS for voice cloning. "
+            "Default: samples/reference/david.wav."
+        ),
+    )
+
+    parser.add_argument(
+        "--tts-output",
+        default="samples/output/answer.wav",
+        help=(
+            "Path used for the XTTS response. "
+            "The file is overwritten after every answer."
+        ),
+    )
+
     return parser.parse_args()
 
 
-def print_search_results(results: list[SearchResult],)->None:
+def print_search_results(
+    results: list[SearchResult],
+) -> None:
     """
     afiseaza fragmentele selectate de Retriever
     """
@@ -105,7 +140,12 @@ def print_search_results(results: list[SearchResult],)->None:
         )
 
 
-def retrieve_context(question: str,active_laboratory: str | None,retriever: Retriever,top_k: int = 3,)->list[SearchResult]:
+def retrieve_context(
+    question: str,
+    active_laboratory: str | None,
+    retriever: Retriever,
+    top_k: int = 3,
+) -> list[SearchResult]:
     """
     selecteaza fragmentele care trebuie trimise catre Gemini.
 
@@ -160,14 +200,14 @@ def retrieve_context(question: str,active_laboratory: str | None,retriever: Retr
 
 def process_transcription(
     transcription: str,
-    language: str,
+    response_language: str,
     top_k: int,
     context_selector: ContextSelector,
     conversation: Conversation,
     retriever: Retriever,
     prompt_builder: PromptBuilder,
     dialog: Dialog,
-) -> None:
+) -> str | None:
     """
     proceseaza o intrebare deja transcrisa
 
@@ -177,14 +217,15 @@ def process_transcription(
         -> Retriever
         -> PromptBuilder
         -> Gemini
-        -> salvare în Conversation
+        -> salvare in Conversation
+        -> returnare raspuns pentru XTTS
     """
 
     cleaned_transcription = transcription.strip()
 
     if not cleaned_transcription:
         print("\nWhisper did not detect any usable speech.")
-        return
+        return None
 
     print("\nTranscription:")
     print(cleaned_transcription)
@@ -231,7 +272,7 @@ def process_transcription(
         conversation_history=(
             conversation.get_messages()
         ),
-        language=language,
+        language=response_language,
     )
 
     print("\nSending prompt to Gemini...")
@@ -244,13 +285,13 @@ def process_transcription(
     except RuntimeError as error:
         print("\nGemini request failed:")
         print(error)
-        return
+        return None
 
     if not answer or not answer.strip():
         print(
             "\nGemini did not return a usable answer."
         )
-        return
+        return None
 
     cleaned_answer = answer.strip()
 
@@ -265,6 +306,8 @@ def process_transcription(
     print("\nTIAGo response:")
     print(cleaned_answer)
 
+    return cleaned_answer
+
 
 def main() -> None:
     args = parse_arguments()
@@ -277,6 +320,16 @@ def main() -> None:
     if args.top_k <= 0:
         raise ValueError(
             "Top-k must be greater than zero."
+        )
+
+    recording_path = Path(args.output)
+    reference_audio = Path(args.reference_audio)
+    output_audio = Path(args.tts_output)
+
+    if not reference_audio.exists():
+        raise FileNotFoundError(
+            f"Reference audio was not found: "
+            f"{reference_audio}"
         )
 
     print("Initializing TIAGo assistant...")
@@ -306,7 +359,10 @@ def main() -> None:
     prompt_builder = PromptBuilder()
     dialog = Dialog()
 
-    recording_path = Path(args.output)
+    # XTTS este initializat o singura data.
+    # Nu il initializam in while, deoarece modelul s-ar incarca
+    # din nou dupa fiecare intrebare.
+    tts = XTTS()
 
     print("\nTIAGo assistant started.")
     print(
@@ -358,7 +414,9 @@ def main() -> None:
             )
 
             if active_laboratory is None:
-                print("\nNo laboratory is currently active.\n")
+                print(
+                    "\nNo laboratory is currently active.\n"
+                )
             else:
                 print(
                     f"\nActive laboratory: "
@@ -400,9 +458,9 @@ def main() -> None:
             print()
             continue
 
-        process_transcription(
+        answer = process_transcription(
             transcription=transcription,
-            language=args.language,
+            response_language=args.response_language,
             top_k=args.top_k,
             context_selector=context_selector,
             conversation=conversation,
@@ -410,6 +468,39 @@ def main() -> None:
             prompt_builder=prompt_builder,
             dialog=dialog,
         )
+
+        # Daca Whisper sau Gemini nu au produs un rezultat,
+        # nu avem ce text sa trimitem catre XTTS.
+        if answer is None:
+            print()
+            continue
+
+        print("\nGenerating speech with XTTS...")
+
+        try:
+            generated_audio = tts.synthesize(
+                text=answer,
+                reference_audio=reference_audio,
+                output_audio=output_audio,
+                language="en",
+            )
+
+        except (
+            RuntimeError,
+            ValueError,
+            FileNotFoundError,
+        ) as error:
+            print("\nXTTS generation failed:")
+            print(error)
+            print()
+            continue
+
+        # Este folosita mereu aceeasi cale.
+        # La fiecare raspuns nou, answer.wav este suprascris.
+        print(
+            "\nGenerated response saved to:"
+        )
+        print(generated_audio)
 
         print()
 
