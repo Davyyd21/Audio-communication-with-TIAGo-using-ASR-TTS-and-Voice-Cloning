@@ -116,6 +116,9 @@ class Retriever:#varianta mai easy de RAG
         "informatii despre",
         "prezentare",
         "overview",
+        "vorbeste",
+        "explica",
+
     )
 
     def __init__(self,knowledge_directory: str | Path,minimum_score: float = 0.18,)->None:#ignoram fragmentele cu scor de relevanta mic
