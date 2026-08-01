@@ -72,7 +72,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--duration",
         type=float,
-        default=7.0,
+        default=5.0,
         help=(
             "Duration of each microphone recording in seconds. "
             "Default: 7."
