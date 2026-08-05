@@ -1,7 +1,7 @@
-SIGMA Laboratory specializes in signal processing, machine learning and intelligent multimedia systems.
+Laboratorul SIGMA este specializat în procesarea semnalelor, învățare automată și sisteme multimedia inteligente.
 
-Research covers digital signal processing, image and video analysis, data fusion and artificial intelligence.
+Cercetarea acoperă procesarea digitală a semnalelor, analiza imaginilor și a materialelor video, combinarea datelor și inteligența artificială.
 
-The laboratory is equipped with GPU workstations, embedded platforms, cameras and signal acquisition devices.
+Laboratorul dispune de stații de lucru cu procesoare grafice, platforme integrate, camere și dispozitive pentru achiziția semnalelor.
 
-Current activities include AI algorithms, multimedia processing and real-time intelligent systems.
+Activitățile curente includ dezvoltarea algoritmilor de inteligență artificială, procesarea conținutului multimedia și realizarea sistemelor inteligente care funcționează în timp real.

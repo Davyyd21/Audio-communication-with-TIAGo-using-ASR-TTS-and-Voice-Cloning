@@ -1,7 +1,7 @@
-AI Multimedia Lab develops artificial intelligence solutions
+Laboratorul AI Multimedia dezvoltă soluții de inteligență artificială pentru conținut multimedia, inclusiv procesarea imaginilor,
 
-for multimedia content, including image processing, computer vision, speech technologies and generative AI.
+vederea artificială, tehnologiile de vorbire și inteligența artificială generativă.
 
-Research focuses on deep learning, multimodal data analysis, object recognition, natural language processing and intelligent multimedia applications.
+Cercetarea se concentrează pe învățarea profundă, analiza datelor multimodale, recunoașterea obiectelor, procesarea limbajului natural și aplicațiile multimedia inteligente.
 
-The laboratory contains GPU servers, cameras, microphones and multimedia processing equipment.
+Laboratorul dispune de servere cu procesoare grafice, camere, microfoane și echipamente pentru procesarea conținutului multimedia.

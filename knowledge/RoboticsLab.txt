@@ -1,5 +1,5 @@
-Robotics Laboratory focuses on autonomous robots, mobile robotics and human-robot interaction.
+Laboratorul de Robotică se concentrează pe roboți autonomi, robotică mobilă și interacțiunea dintre oameni și roboți.
 
-Research includes robot navigation, SLAM, sensor fusion, motion planning and robotic manipulation.
+Cercetarea include navigația roboților, localizarea și cartografierea simultană, combinarea datelor provenite de la mai mulți senzori, planificarea mișcării și manipularea robotică.
 
-The laboratory contains collaborative robots, mobile robots, LiDAR sensors, RGB-D cameras and embedded computing platforms used for intelligent robotic applications.
+Laboratorul dispune de roboți colaborativi, roboți mobili, senzori lidar, camere pentru imagini color și informații de adâncime, precum și platforme de calcul integrate, folosite pentru aplicații robotice inteligente.
