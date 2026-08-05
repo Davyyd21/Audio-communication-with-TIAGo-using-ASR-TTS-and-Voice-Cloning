@@ -1,7 +1,5 @@
-Smart Systems Laboratory develops intelligent electronic systems combining sensors,
+Laboratorul de Sisteme Inteligente dezvoltă sisteme electronice inteligente, care combină senzori, software integrat și inteligență artificială.
 
-embedded software and artificial intelligence. Research areas include smart devices,
- 
-environmental monitoring, predictive maintenance and intelligent automation.
-  
-The laboratory is equipped with microcontrollers, embedded processors, sensor platforms and data acquisition systems.
+Domeniile de cercetare includ dispozitive inteligente, monitorizarea mediului, mentenanța predictivă și automatizarea inteligentă.
+
+Laboratorul dispune de microcontrolere, procesoare integrate, platforme cu senzori și sisteme pentru achiziția datelor.

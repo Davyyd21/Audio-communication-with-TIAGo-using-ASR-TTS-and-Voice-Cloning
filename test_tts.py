@@ -1,19 +1,26 @@
 from pathlib import Path
 
-from tiago_assistant.tts import XTTS
+from tiago_assistant.tts import RomanianTTS
 
 
 def main() -> None:
-    tts = XTTS()
+    tts = RomanianTTS(
+        model_path=Path(
+            "models/piper/ro_RO-lili-high.onnx"
+        ),
+    )
 
     tts.synthesize(
         text=(
-            "Hello! This is a test of the voice cloning system "
-            "for the TIAGo robot."
+            "Bună ziua! Eu sunt robotul Tiago și vă pot ajuta să descoperiți "
+            "laboratoarele facultății, proiectele dezvoltate de studenți și "
+            "echipamentele folosite pentru cercetare. Pot asculta întrebările "
+            "dumneavoastră, pot înțelege informațiile importante și pot răspunde "
+            "clar, folosind limba română."
         ),
-        reference_audio=Path("samples/reference/david.wav"),
-        output_audio=Path("samples/output/answer.wav"),
-        language="en",
+        output_audio=Path(
+            "samples/output/answer.wav"
+        ),
     )
 
 

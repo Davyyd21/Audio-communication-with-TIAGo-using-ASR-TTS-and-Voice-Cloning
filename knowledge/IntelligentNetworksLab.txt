@@ -1,7 +1,5 @@
-Intelligent Networks Laboratory researches modern communication systems,
+Laboratorul de Rețele Inteligente cercetează sisteme moderne de comunicații, rețele fără fir și metode de optimizare inteligentă a rețelelor.
 
-wireless networks and network intelligence.
+Domeniile studiate includ tehnologia cinci G, comunicațiile pentru internetul lucrurilor, optimizarea rețelelor, procesarea la marginea rețelei și utilizarea inteligenței artificiale pentru administrarea comunicațiilor.
 
-Topics include 5G, IoT communication, network optimization, edge computing and AI-assisted networking.
-
-The laboratory contains programmable routers, wireless communication equipment and network simulation platforms.
+Laboratorul dispune de routere programabile, echipamente pentru comunicații fără fir și platforme pentru simularea rețelelor.

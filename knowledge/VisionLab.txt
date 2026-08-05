@@ -1,7 +1,5 @@
-Vision Laboratory is dedicated to computer vision and image understanding.
+Laboratorul de Vedere Artificială este dedicat vederii computerizate și înțelegerii imaginilor.
 
-Research topics include object detection, image segmentation, facial recognition,
- 
-3D reconstruction and visual perception for autonomous systems. The laboratory uses high-resolution cameras,
-  
-depth sensors, GPU workstations and machine learning frameworks for visual AI research.
+Temele de cercetare includ detectarea obiectelor, segmentarea imaginilor, recunoașterea facială, reconstrucția tridimensională și percepția vizuală pentru sisteme autonome.
+
+Laboratorul folosește camere de înaltă rezoluție, senzori de adâncime, stații de lucru cu procesoare grafice și cadre software de învățare automată pentru cercetarea în domeniul inteligenței artificiale vizuale.

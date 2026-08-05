@@ -1,7 +1,5 @@
-Cyber Physical Systems Laboratory studies intelligent embedded systems
+Laboratorul de Sisteme Ciber-Fizice studiază sisteme integrate inteligente, care combină procesele de calcul, comunicațiile și procesele fizice.
 
-integrating computation, communication and physical processes.
+Cercetarea include internetul lucrurilor, automatizarea industrială, senzorii inteligenți, sistemele în timp real și controlul distribuit.
 
-Research includes IoT, industrial automation, smart sensors, real-time systems and distributed control.
-
-Equipment consists of embedded boards, FPGA platforms, industrial controllers and wireless sensor networks.
+Laboratorul dispune de plăci de dezvoltare pentru sisteme integrate, platforme FPGA, controlere industriale și rețele de senzori fără fir.

@@ -14,12 +14,12 @@ from tiago_assistant.network import (
 )
 from tiago_assistant.prompt_builder import PromptBuilder
 from tiago_assistant.retriever import Retriever, SearchResult
-from tiago_assistant.tts import XTTS
+from tiago_assistant.tts import RomanianTTS
 
 
 def parse_arguments() -> argparse.Namespace:
     """
-    citeste optiunile primite din terminal
+    Citeste optiunile primite din terminal.
 
     Exemplu:
         python main_server.py --port 5000 --model base
@@ -29,8 +29,8 @@ def parse_arguments() -> argparse.Namespace:
         description=(
             "Receive microphone audio through Wi-Fi, transcribe it "
             "with Whisper, retrieve laboratory information, generate "
-            "a Gemini response, synthesize it with XTTS and send the "
-            "generated WAV file back to the client."
+            "a Gemini response, synthesize it with Romanian Piper TTS "
+            "and send the generated WAV file back to the client."
         )
     )
 
@@ -67,19 +67,10 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "--response-language",
-        default="en",
+        default="ro",
         help=(
             "Language requested from Gemini. "
-            "Default: en."
-        ),
-    )
-
-    parser.add_argument(
-        "--tts-language",
-        default="en",
-        help=(
-            "Language used by XTTS. "
-            "Default: en."
+            "Default: ro."
         ),
     )
 
@@ -112,11 +103,11 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--reference-audio",
-        default="samples/reference/david.wav",
+        "--tts-model",
+        default="models/piper/ro_RO-lili-high.onnx",
         help=(
-            "Reference WAV used by XTTS for voice cloning. "
-            "Default: samples/reference/david.wav."
+            "Path to the Romanian Piper ONNX model. "
+            "Default: models/piper/ro_RO-lili-high.onnx."
         ),
     )
 
@@ -124,7 +115,7 @@ def parse_arguments() -> argparse.Namespace:
         "--answer-audio",
         default="samples/output/answer.wav",
         help=(
-            "Path used for the generated XTTS response. "
+            "Path used for the generated Piper response. "
             "The file is overwritten after every answer."
         ),
     )
@@ -136,7 +127,7 @@ def print_search_results(
     results: list[SearchResult],
 ) -> None:
     """
-    afiseaza fragmentele selectate de Retriever
+    Afiseaza fragmentele selectate de Retriever.
     """
 
     if not results:
@@ -160,9 +151,9 @@ def retrieve_context(
     top_k: int = 3,
 ) -> list[SearchResult]:
     """
-    selecteaza fragmentele care trebuie trimise catre Gemini.
+    Selecteaza fragmentele care trebuie trimise catre Gemini.
 
-    practic facem asa:
+    Logica:
 
     1. Pentru o prezentare generala sunt luate toate
        fragmentele laboratorului activ.
@@ -222,16 +213,16 @@ def process_transcription(
     dialog: Dialog,
 ) -> str | None:
     """
-    proceseaza o intrebare deja transcrisa
+    Proceseaza o intrebare deja transcrisa.
 
-    Flow-ul e asa:
+    Flow:
         text
         -> detectare laborator
         -> Retriever
         -> PromptBuilder
         -> Gemini
         -> salvare in Conversation
-        -> returnare raspuns pentru XTTS
+        -> returnare raspuns pentru Piper
     """
 
     cleaned_transcription = transcription.strip()
@@ -326,9 +317,7 @@ def process_audio_file(
     audio_path: Path,
     input_language: str,
     response_language: str,
-    tts_language: str,
     top_k: int,
-    reference_audio: Path,
     output_audio: Path,
     asr: ASR,
     context_selector: ContextSelector,
@@ -336,10 +325,10 @@ def process_audio_file(
     retriever: Retriever,
     prompt_builder: PromptBuilder,
     dialog: Dialog,
-    tts: XTTS,
+    tts: RomanianTTS,
 ) -> Path:
     """
-    ruleaza intregul pipeline pentru un fisier WAV primit.
+    Ruleaza intregul pipeline pentru un fisier WAV primit.
 
     Flow:
         question.wav
@@ -348,7 +337,7 @@ def process_audio_file(
         -> Retriever
         -> PromptBuilder
         -> Gemini
-        -> XTTS
+        -> Romanian Piper TTS
         -> answer.wav
     """
 
@@ -375,13 +364,11 @@ def process_audio_file(
             "No usable response could be generated."
         )
 
-    print("\nGenerating speech with XTTS...")
+    print("\nGenerating speech with Romanian Piper TTS...")
 
     generated_audio = tts.synthesize(
         text=answer,
-        reference_audio=reference_audio,
         output_audio=output_audio,
-        language=tts_language,
     )
 
     print(
@@ -396,7 +383,6 @@ def handle_client(
     connection: socket.socket,
     client_address: tuple[str, int],
     received_audio: Path,
-    reference_audio: Path,
     output_audio: Path,
     args: argparse.Namespace,
     asr: ASR,
@@ -405,10 +391,10 @@ def handle_client(
     retriever: Retriever,
     prompt_builder: PromptBuilder,
     dialog: Dialog,
-    tts: XTTS,
+    tts: RomanianTTS,
 ) -> None:
     """
-    proceseaza o singura intrebare primita de la client.
+    Proceseaza o singura intrebare primita de la client.
 
     Pentru fiecare intrebare:
         primeste question.wav
@@ -436,9 +422,7 @@ def handle_client(
             audio_path=received_question,
             input_language=args.input_language,
             response_language=args.response_language,
-            tts_language=args.tts_language,
             top_k=args.top_k,
-            reference_audio=reference_audio,
             output_audio=output_audio,
             asr=asr,
             context_selector=context_selector,
@@ -449,10 +433,8 @@ def handle_client(
             tts=tts,
         )
 
-        # Mai intai anuntam clientul ca procesarea a reusit.
         send_success(connection)
 
-        # Dupa status trimitem fisierul WAV.
         send_file(
             connection,
             generated_answer,
@@ -500,18 +482,28 @@ def main() -> None:
         args.received_audio
     )
 
-    reference_audio = Path(
-        args.reference_audio
+    tts_model = Path(
+        args.tts_model
+    )
+
+    tts_config = Path(
+        str(tts_model) + ".json"
     )
 
     output_audio = Path(
         args.answer_audio
     )
 
-    if not reference_audio.exists():
+    if not tts_model.exists():
         raise FileNotFoundError(
-            f"Reference audio was not found: "
-            f"{reference_audio}"
+            f"Piper model was not found: "
+            f"{tts_model}"
+        )
+
+    if not tts_config.exists():
+        raise FileNotFoundError(
+            f"Piper model configuration was not found: "
+            f"{tts_config}"
         )
 
     received_audio.parent.mkdir(
@@ -526,8 +518,6 @@ def main() -> None:
 
     print("Initializing TIAGo processing server...")
 
-    # Modelele sunt initializate o singura data,
-    # inainte de bucla serverului.
     asr = ASR(
         model_name=args.model
     )
@@ -548,9 +538,11 @@ def main() -> None:
     prompt_builder = PromptBuilder()
     dialog = Dialog()
 
-    # XTTS nu trebuie initializat pentru fiecare intrebare,
-    # deoarece incarcarea modelului dureaza mult.
-    tts = XTTS()
+    # Piper este initializat o singura data,
+    # inainte de pornirea buclei serverului.
+    tts = RomanianTTS(
+        model_path=tts_model,
+    )
 
     with socket.socket(
         socket.AF_INET,
@@ -597,7 +589,6 @@ def main() -> None:
                     connection=connection,
                     client_address=client_address,
                     received_audio=received_audio,
-                    reference_audio=reference_audio,
                     output_audio=output_audio,
                     args=args,
                     asr=asr,

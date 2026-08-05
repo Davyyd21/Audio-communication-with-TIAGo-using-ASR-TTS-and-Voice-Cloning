@@ -1,11 +1,7 @@
-SAIL (Smart Audio Intelligence Laboratory) is focused on audio signal processing,
+Laboratorul SAIL, denumit Laboratorul de Inteligență Audio, se concentrează pe procesarea semnalelor audio, recunoașterea vorbirii, identificarea vorbitorilor și inteligența artificială.
 
-speech recognition, speaker identification and artificial intelligence.
- 
-The laboratory develops machine learning solutions for audio analysis, voice assistants and embedded AI systems.
-  
-Main equipment includes high-performance workstations, microphone arrays, audio interfaces,
+Laboratorul dezvoltă soluții de învățare automată pentru analiza audio, asistenți vocali și sisteme integrate cu inteligență artificială.
 
-embedded development boards and acoustic measurement systems. Research is centered on automatic speech recognition,
-    
-audio classification, deep learning and intelligent human-computer interaction.
+Echipamentele principale includ stații de lucru de înaltă performanță, ansambluri de microfoane, interfețe audio, plăci de dezvoltare pentru sisteme integrate și sisteme de măsurare acustică.
+
+Cercetarea se axează pe recunoașterea automată a vorbirii, clasificarea semnalelor audio, învățarea profundă și interacțiunea inteligentă dintre oameni și calculatoare.
