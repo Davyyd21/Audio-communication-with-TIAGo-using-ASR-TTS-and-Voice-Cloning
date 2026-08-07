@@ -27,12 +27,9 @@ MESSAGE_AUDIO_REQUEST = b"\x11"
 
 
 
-def receive_exactly(
-    connection: socket.socket,
-    number_of_bytes: int,
-) -> bytes:
+def receive_exactly(connection: socket.socket,number_of_bytes: int,)->bytes:
     """
-    Primește exact numărul de bytes cerut.
+    primeste exact numarul de bytes cerut
     """
 
     received_data = bytearray()
@@ -46,47 +43,29 @@ def receive_exactly(
 
 
         if not chunk:
-
-            raise ConnectionError(
-                "Connection closed before all data was received."
-            )
-
+            raise ConnectionError("Connection closed before all data was received.")
 
         received_data.extend(
             chunk
         )
-
-
     return bytes(received_data)
 
 
 
-def send_message_type(
-    connection: socket.socket,
-    message_type: bytes,
-) -> None:
+def send_message_type(connection: socket.socket,message_type: bytes,)->None:
     """
-    Trimite mesaj de control.
+    trimite mesaj de control
     """
 
-    connection.sendall(
-        message_type
-    )
+    connection.sendall(message_type)
 
 
-
-def receive_message_type(
-    connection: socket.socket,
-) -> bytes:
+def receive_message_type(connection: socket.socket,)->bytes:
     """
-    Primește tipul mesajului.
+    primeste tipul mesajului
     """
 
-    message_type = receive_exactly(
-        connection,
-        1,
-    )
-
+    message_type = receive_exactly(connection,1,)
 
     valid_messages = (
         MESSAGE_ERROR,
@@ -99,56 +78,27 @@ def receive_message_type(
 
 
     if message_type not in valid_messages:
-
-        raise ConnectionError(
-            "Unknown message type received."
-        )
-
-
+        raise ConnectionError("Unknown message type received.")
     return message_type
 
 
+def send_start_session(connection: socket.socket,)->None:
+    """
+    Client -> Server
+    porneste o conversatie Gemini noua.
+    """
 
-# ==========================
-# SESSION CONTROL
-# ==========================
+    send_message_type(connection,MESSAGE_START_SESSION,)
 
 
-def send_start_session(
-    connection: socket.socket,
-) -> None:
+def send_audio_request(connection: socket.socket,)->None:
     """
     Client -> Server
 
-    Pornește o conversație Gemini nouă.
+    Anunta ca urmeaza WAV-ul
     """
 
-    send_message_type(
-        connection,
-        MESSAGE_START_SESSION,
-    )
-
-
-
-def send_audio_request(
-    connection: socket.socket,
-) -> None:
-    """
-    Client -> Server
-
-    Anunță că urmează WAV-ul.
-    """
-
-    send_message_type(
-        connection,
-        MESSAGE_AUDIO_REQUEST,
-    )
-
-
-
-# ==========================
-# FILE TRANSFER
-# ==========================
+    send_message_type(connection,MESSAGE_AUDIO_REQUEST,)
 
 
 def send_file(
@@ -156,19 +106,15 @@ def send_file(
     file_path: Union[str, Path],
 ) -> None:
     """
-    Trimite un fișier:
+    Trimite un fisier:
 
     1. dimensiune 8 bytes
-    2. conținut
+    2. continut
     """
 
-    path = Path(
-        file_path
-    )
-
+    path = Path(file_path)
 
     if not path.exists():
-
         raise FileNotFoundError(
             "File not found: {}".format(
                 path
@@ -177,36 +123,16 @@ def send_file(
 
 
     file_size = path.stat().st_size
-
-
     connection.sendall(
-        struct.pack(
-            "!Q",
-            file_size,
-        )
+        struct.pack("!Q",file_size,)
     )
 
-
-    with path.open(
-        "rb"
-    ) as file:
-
+    with path.open("rb") as file:
         while True:
-
-            chunk = file.read(
-                BUFFER_SIZE
-            )
-
-
+            chunk = file.read(BUFFER_SIZE)
             if not chunk:
-
                 break
-
-
-            connection.sendall(
-                chunk
-            )
-
+            connection.sendall(chunk)
 
 
 def receive_file(
@@ -214,121 +140,46 @@ def receive_file(
     output_path: Union[str, Path],
 ) -> Path:
     """
-    Primește un fișier.
+    primeste un fisier
     """
 
-    path = Path(
-        output_path
-    )
+    path = Path(output_path)
+    path.parent.mkdir(parents=True,exist_ok=True,)
 
-
-    path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-
-    header = receive_exactly(
-        connection,
-        HEADER_SIZE,
-    )
-
-
-    file_size = struct.unpack(
-        "!Q",
-        header,
-    )[0]
+    header = receive_exactly(connection,HEADER_SIZE,)
+    file_size = struct.unpack("!Q",header,)[0]
 
 
     remaining_bytes = file_size
 
-
-    with path.open(
-        "wb"
-    ) as file:
-
+    with path.open("wb") as file:
         while remaining_bytes > 0:
-
             chunk = connection.recv(
-                min(
-                    BUFFER_SIZE,
-                    remaining_bytes,
-                )
+                min(BUFFER_SIZE,remaining_bytes,)
             )
-
-
             if not chunk:
-
-                raise ConnectionError(
-                    "Connection closed while receiving file."
-                )
-
-
-            file.write(
-                chunk
-            )
-
-
+                raise ConnectionError("Connection closed while receiving file.")
+                
+            file.write(chunk)
             remaining_bytes -= len(chunk)
-
-
+            
     return path
 
+def send_text(connection: socket.socket,message: str,)->None:
 
-
-# ==========================
-# TEXT
-# ==========================
-
-
-def send_text(
-    connection: socket.socket,
-    message: str,
-) -> None:
-
-
-    encoded_message = message.encode(
-        "utf-8"
-    )
-
+    encoded_message = message.encode("utf-8")
 
     connection.sendall(
-        struct.pack(
-            "!Q",
-            len(encoded_message),
-        )
+        struct.pack("!Q",len(encoded_message),)
     )
+    
+    connection.sendall(encoded_message)
+    
+def receive_text(connection: socket.socket,)->str:
 
+    header = receive_exactly(connection,HEADER_SIZE,)
+    message_size = struct.unpack("!Q",header,)[0]
 
-    connection.sendall(
-        encoded_message
-    )
-
-
-
-def receive_text(
-    connection: socket.socket,
-) -> str:
-
-
-    header = receive_exactly(
-        connection,
-        HEADER_SIZE,
-    )
-
-
-    message_size = struct.unpack(
-        "!Q",
-        header,
-    )[0]
-
-
-    message = receive_exactly(
-        connection,
-        message_size,
-    )
-
-
-    return message.decode(
-        "utf-8"
-    )
+    message = receive_exactly(connection,message_size,)
+    
+    return message.decode("utf-8")
