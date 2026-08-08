@@ -3,99 +3,69 @@ from enum import Enum
 
 class SessionState(Enum):
     """
-    Stările posibile ale conversației TIAGo.
+    starile posibile ale conversatiei tiago.
     """
-
     ACTIVE = "active"
     STANDBY = "standby"
 
 
-
 class SessionManager:
     """
-    Gestionează starea sesiunii conversaționale TIAGo.
+    gestioneaza starea sesiunii conversationale tiago.
 
-    ACTIVE:
-        Robotul ascultă, procesează întrebări și răspunde.
+    active:
+        robotul asculta, proceseaza intrebari si raspunde.
+    standby:
+        robotul este oprit temporar si asteapta
+        pornirea unei conversatii noi.
 
-    STANDBY:
-        Robotul este oprit temporar și așteaptă
-        pornirea unei conversații noi.
-
-    Responsabilități:
-    - schimbarea stării conversației;
+    responsabilitati:
+    - schimbarea starii conversatiei;
     - detectarea comenzilor de oprire;
     - detectarea comenzilor de pornire.
     """
 
-
     def __init__(self) -> None:
-
+        # la pornire, robotul e mereu activ
         self.state = SessionState.ACTIVE
-
-
 
     def enter_standby(self) -> None:
         """
-        Pune TIAGo în modul standby.
+        pune tiago in modul standby.
         """
-
         self.state = SessionState.STANDBY
-
-        print(
-            "TIAGo entered standby mode."
-        )
-
-
+        print("TIAGo entered standby mode.")
 
     def start_new_session(self) -> None:
         """
-        Pornește o conversație nouă.
+        porneste o conversatie noua.
         """
-
         self.state = SessionState.ACTIVE
-
-        print(
-            "TIAGo started a new conversation."
-        )
-
-
+        print("TIAGo started a new conversation.")
 
     def is_active(self) -> bool:
         """
-        Verifică dacă robotul este activ.
+        verifica daca robotul este activ.
         """
-
-        return (
-            self.state == SessionState.ACTIVE
-        )
-
-
+        return self.state == SessionState.ACTIVE
 
     def is_standby(self) -> bool:
         """
-        Verifică dacă robotul este în standby.
+        verifica daca robotul este in standby.
         """
-
-        return (
-            self.state == SessionState.STANDBY
-        )
-
-
+        return self.state == SessionState.STANDBY
 
     @staticmethod
-    def normalize_text(
-        text: str,
-    ) -> str:
+    def normalize_text(text: str) -> str:
         """
-        Normalizează textul primit de la Whisper.
+        normalizeaza textul primit de la whisper.
 
-        Whisper poate returna:
+        whisper poate returna:
         - diacritice;
-        - variații de scriere;
+        - variatii de scriere;
         - litere mari/mici.
         """
-
+        # transforma in litere mici, elimina spatii goale si inlocuieste diacriticele cu litere simple
         return (
             text.lower()
             .strip()
@@ -108,29 +78,20 @@ class SessionManager:
             .replace("ţ", "t")
         )
 
-
-
-    def is_stop_command(
-        self,
-        text: str,
-    ) -> bool:
+    def is_stop_command(self, text: str) -> bool:
         """
-        Detectează comenzi vocale pentru standby.
+        detecteaza comenzi vocale pentru standby.
 
-        Exemple acceptate:
-        - TIAGo stop
-        - TIAGo oprește
-        - stop TIAGo
-        - oprește-te TIAGo
+        exemple acceptate:
+        - tiago stop
+        - tiago opreste
+        - stop tiago
+        - opreste-te tiago
         """
+        # normalizeaza textul primit ca sa poata fi comparat corect
+        normalized = self.normalize_text(text)
 
-        normalized = (
-            self.normalize_text(
-                text
-            )
-        )
-
-
+        # lista de comenzi acceptate pentru intrarea in standby
         stop_commands = [
             "tiago stop",
             "stop tiago",
@@ -142,34 +103,22 @@ class SessionManager:
             "treci in standby",
         ]
 
+        # verifica daca vreo comanda din lista se regaseste in textul normalizat
+        return any(command in normalized for command in stop_commands)
 
-        return any(
-            command in normalized
-            for command in stop_commands
-        )
-
-
-
-    def is_start_command(
-        self,
-        text: str,
-    ) -> bool:
+    def is_start_command(self, text: str) -> bool:
         """
-        Detectează comenzi pentru revenirea din standby.
+        detecteaza comenzi pentru revenirea din standby.
 
-        Exemple:
-        - TIAGo pornește
-        - începe conversația
+        exemple:
+        - tiago porneste
+        - incepe conversatia
         - revino
         """
+        # normalizeaza textul primit ca sa poata fi comparat corect
+        normalized = self.normalize_text(text)
 
-        normalized = (
-            self.normalize_text(
-                text
-            )
-        )
-
-
+        # lista de comenzi acceptate pentru pornirea unei conversatii noi
         start_commands = [
             "tiago porneste",
             "porneste tiago",
@@ -180,8 +129,5 @@ class SessionManager:
             "start conversatie",
         ]
 
-
-        return any(
-            command in normalized
-            for command in start_commands
-        )
+        # verifica daca vreo comanda din lista se regaseste in textul normalizat
+        return any(command in normalized for command in start_commands)
