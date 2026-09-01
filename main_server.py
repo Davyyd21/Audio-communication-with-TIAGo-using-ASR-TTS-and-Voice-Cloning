@@ -31,41 +31,88 @@ from tiago_assistant.tts import RomanianTTS
 from tiago_assistant.session_manager import SessionManager
 
 
+
 def parse_arguments() -> argparse.Namespace:
-    # creeaza parserul de argumente cu descrierea programului
-    parser = argparse.ArgumentParser(description=("TIAGo audio communication server."))
 
-    parser.add_argument("--host", default="0.0.0.0")
+    parser = argparse.ArgumentParser(
+        description=(
+            "TIAGo audio communication server."
+        )
+    )
 
-    parser.add_argument("--port", type=int, default=5000)
 
-    parser.add_argument("--model", default="base")
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+    )
 
-    parser.add_argument("--input-language", default="ro")
 
-    parser.add_argument("--knowledge", default="knowledge")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+    )
+    parser.add_argument(
+        "--input-language",
+        default="ro",
+    )
 
-    parser.add_argument("--top-k", type=int, default=3)
 
-    parser.add_argument("--received-audio", default="samples/input/received_question.wav")
+    parser.add_argument(
+        "--knowledge",
+        default="knowledge",
+    )
 
-    parser.add_argument("--tts-model", default="models/piper/ro_RO-lili-high.onnx")
 
-    parser.add_argument("--answer-chunks-directory", default="samples/output/answer_chunks")
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=3,
+    )
+
+
+    parser.add_argument(
+        "--received-audio",
+        default="samples/input/received_question.wav",
+    )
+
+
+    parser.add_argument(
+        "--tts-model",
+        default="models/piper/ro_RO-lili-high.onnx",
+    )
+
+
+    parser.add_argument(
+        "--answer-chunks-directory",
+        default="samples/output/answer_chunks",
+    )
+
 
     return parser.parse_args()
 
 
-def print_search_results(results: list[SearchResult]) -> None:
-    # daca nu exista rezultate, afiseaza mesaj si iese
+
+def print_search_results(
+    results: list[SearchResult],
+) -> None:
+
     if not results:
-        print("No relevant fragments found.")
+
+        print(
+            "No relevant fragments found."
+        )
+
         return
 
-    print("\nRetrieved fragments:")
 
-    # afiseaza sursa, pozitia si scorul fiecarui fragment gasit
+    print(
+        "\nRetrieved fragments:"
+    )
+
+
     for result in results:
+
         print(
             "- {} fragment {} score {:.2f}".format(
                 result.source,
@@ -75,21 +122,25 @@ def print_search_results(results: list[SearchResult]) -> None:
         )
 
 
+
 def retrieve_context(
     question: str,
     active_laboratory: str | None,
     retriever: Retriever,
     top_k: int,
 ) -> list[SearchResult]:
-    # daca exista un laborator activ, cauta prioritar in contextul lui
+
     if active_laboratory:
 
-        # daca e o intrebare de tip "prezentare generala", ia toate fragmentele laboratorului
-        if retriever.is_general_presentation_question(question):
+        if retriever.is_general_presentation_question(
+            question
+        ):
+
             return retriever.get_laboratory_chunks(
                 laboratory_name=active_laboratory,
                 max_chunks=10,
             )
+
 
         results = retriever.search(
             question=question,
@@ -98,17 +149,20 @@ def retrieve_context(
             include_neighbors=True,
         )
 
-        # daca s-a gasit ceva relevant in laboratorul activ, il returneaza
+
         if results:
+
             return results
 
-    # altfel, cauta in toate laboratoarele, fara restrictie
+
+
     return retriever.search(
         question=question,
         laboratory_name=None,
         top_k=top_k,
         include_neighbors=True,
     )
+
 
 
 def build_prompt_for_transcription(
@@ -119,22 +173,36 @@ def build_prompt_for_transcription(
     retriever: Retriever,
     prompt_builder: PromptBuilder,
 ):
+
     transcription = transcription.strip()
 
-    # daca transcrierea e goala, nu are sens sa continuam
+
     if not transcription:
-        raise RuntimeError("Empty transcription.")
 
-    # incearca sa detecteze despre ce laborator vorbeste utilizatorul
-    detected_laboratory, _ = context_selector.get_context(transcription)
+        raise RuntimeError(
+            "Empty transcription."
+        )
 
-    # daca s-a detectat un laborator nou, il seteaza ca activ
+
+    detected_laboratory, _ = (
+        context_selector.get_context(
+            transcription
+        )
+    )
+
+
     if detected_laboratory:
-        laboratory_state.set_active_laboratory(detected_laboratory)
 
-    active_laboratory = laboratory_state.get_active_laboratory()
+        laboratory_state.set_active_laboratory(
+            detected_laboratory
+        )
 
-    # cauta fragmentele relevante pentru intrebare
+
+    active_laboratory = (
+        laboratory_state.get_active_laboratory()
+    )
+
+
     results = retrieve_context(
         question=transcription,
         active_laboratory=active_laboratory,
@@ -142,54 +210,94 @@ def build_prompt_for_transcription(
         top_k=top_k,
     )
 
-    print_search_results(results)
 
-    # formateaza rezultatele intr-un text de context pentru gemini
-    context = retriever.format_results(results)
+    print_search_results(
+        results
+    )
 
-    # construieste promptul final trimis catre gemini
+
+    context = retriever.format_results(
+        results
+    )
+
+
     prompt = prompt_builder.build(
         question=transcription,
         laboratory_name=active_laboratory,
         laboratory_context=context,
     )
 
+
     return prompt
+def extract_complete_sentences(
+    text_buffer: str,
+):
 
-
-def extract_complete_sentences(text_buffer: str):
     sentences = []
 
-    # pattern care prinde propozitii complete, terminate cu . ! sau ?
-    pattern = re.compile(r".+?[.!?]+(?=\s|$)", flags=re.DOTALL)
+    pattern = re.compile(
+        r".+?[.!?]+(?=\s|$)",
+        flags=re.DOTALL,
+    )
+
 
     last_end = 0
 
-    # cauta toate propozitiile complete gasite in text
-    for match in pattern.finditer(text_buffer):
-        sentence = match.group(0).strip()
+
+    for match in pattern.finditer(
+        text_buffer
+    ):
+
+        sentence = match.group(
+            0
+        ).strip()
+
 
         if sentence:
-            sentences.append(sentence)
+
+            sentences.append(
+                sentence
+            )
+
 
         last_end = match.end()
 
-    # ce a ramas dupa ultima propozitie completa (posibil neterminat inca)
-    remaining = text_buffer[last_end:].lstrip()
-
-    return sentences, remaining
 
 
-def clear_old_audio_chunks(directory: Path):
-    # creeaza folderul daca nu exista deja
-    directory.mkdir(parents=True, exist_ok=True)
+    remaining = text_buffer[
+        last_end:
+    ].lstrip()
 
-    # sterge toate fragmentele audio vechi
-    for file in directory.glob("answer_chunk_*.wav"):
+
+    return (
+        sentences,
+        remaining,
+    )
+
+
+
+def clear_old_audio_chunks(
+    directory: Path,
+):
+
+    directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
+    for file in directory.glob(
+        "answer_chunk_*.wav"
+    ):
+
         try:
+
             file.unlink()
+
         except OSError:
+
             pass
+
 
 
 def synthesize_and_send_sentence(
@@ -199,16 +307,30 @@ def synthesize_and_send_sentence(
     chunks_directory: Path,
     tts: RomanianTTS,
 ):
-    # construieste numele fisierului pentru fragmentul curent (ex: answer_chunk_001.wav)
-    chunk_path = chunks_directory / "answer_chunk_{:03d}.wav".format(chunk_number)
 
-    # genereaza audio-ul din text folosind tts
-    generated = tts.synthesize(text=sentence, output_audio=chunk_path)
+    chunk_path = (
+        chunks_directory
+        /
+        "answer_chunk_{:03d}.wav".format(
+            chunk_number
+        )
+    )
 
-    # trimite fragmentul audio catre client
-    send_audio_chunk(connection, generated)
+
+    generated = tts.synthesize(
+        text=sentence,
+        output_audio=chunk_path,
+    )
+
+
+    send_audio_chunk(
+        connection,
+        generated,
+    )
+
 
     return generated
+
 
 
 def stream_gemini_answer_as_audio(
@@ -218,27 +340,50 @@ def stream_gemini_answer_as_audio(
     tts: RomanianTTS,
     chunks_directory: Path,
 ):
-    # sterge fragmentele audio vechi inainte de a incepe un raspuns nou
-    clear_old_audio_chunks(chunks_directory)
+
+    clear_old_audio_chunks(
+        chunks_directory
+    )
+
 
     text_buffer = ""
 
     chunk_number = 0
 
-    print("\nGenerating Gemini response...")
 
-    # parcurge raspunsul gemini bucata cu bucata, pe masura ce vine (streaming)
-    for response_chunk in dialog.generate_response_stream(prompt):
+    print(
+        "\nGenerating Gemini response..."
+    )
+
+
+    for response_chunk in (
+        dialog.generate_response_stream(
+            prompt
+        )
+    ):
+
         text_buffer += response_chunk
 
-        # extrage propozitiile complete deja formate in buffer
-        sentences, text_buffer = extract_complete_sentences(text_buffer)
 
-        # pentru fiecare propozitie completa, genereaza audio si trimite-l
+        sentences, text_buffer = (
+            extract_complete_sentences(
+                text_buffer
+            )
+        )
+
+
         for sentence in sentences:
+
             chunk_number += 1
 
-            print("TTS chunk {}: {}".format(chunk_number, sentence))
+
+            print(
+                "TTS chunk {}: {}".format(
+                    chunk_number,
+                    sentence,
+                )
+            )
+
 
             synthesize_and_send_sentence(
                 connection=connection,
@@ -248,11 +393,15 @@ def stream_gemini_answer_as_audio(
                 tts=tts,
             )
 
-    # ce a mai ramas in buffer dupa ce s-a terminat streamingul, se trimite si el
+
+
     remaining = text_buffer.strip()
 
+
     if remaining:
+
         chunk_number += 1
+
 
         synthesize_and_send_sentence(
             connection=connection,
@@ -262,8 +411,11 @@ def stream_gemini_answer_as_audio(
             tts=tts,
         )
 
-    # anunta clientul ca raspunsul s-a terminat complet
-    send_end_response(connection)
+
+    send_end_response(
+        connection
+    )
+
 
 
 def process_audio_file(
@@ -281,30 +433,54 @@ def process_audio_file(
     chunks_directory: Path,
     session_manager: SessionManager,
 ):
-    # daca robotul e in standby, nu proceseaza nimic
+
+
     if session_manager.is_standby():
+
         return
 
-    # transcrie fisierul audio primit in text
-    transcription = asr.transcribe(audio_path, language=input_language)
 
-    print("\nTranscription:")
-    print(transcription)
 
-    # verifica daca transcrierea e o comanda de oprire
-    if session_manager.is_stop_command(transcription):
-        print("Stop command detected.")
+    transcription = asr.transcribe(
+        audio_path,
+        language=input_language,
+    )
+
+
+    print(
+        "\nTranscription:"
+    )
+
+    print(
+        transcription
+    )
+
+
+    if session_manager.is_stop_command(
+        transcription
+    ):
+
+        print(
+            "Stop command detected."
+        )
+
 
         dialog.reset_chat()
+
         laboratory_state.clear()
+
         session_manager.enter_standby()
 
-        # anunta clientul ca robotul a intrat in standby
-        send_standby(connection)
+
+        send_standby(
+            connection
+        )
+
 
         return
 
-    # construieste promptul pe baza transcrierii si a contextului gasit
+
+
     prompt = build_prompt_for_transcription(
         transcription=transcription,
         top_k=top_k,
@@ -314,7 +490,7 @@ def process_audio_file(
         prompt_builder=prompt_builder,
     )
 
-    # genereaza raspunsul gemini si il trimite catre client sub forma de audio
+
     stream_gemini_answer_as_audio(
         connection=connection,
         prompt=prompt,
@@ -322,6 +498,7 @@ def process_audio_file(
         tts=tts,
         chunks_directory=chunks_directory,
     )
+
 
 
 def handle_client(
@@ -340,29 +517,51 @@ def handle_client(
     chunks_directory: Path,
     session_manager: SessionManager,
 ):
-    print("Client connected:", address)
+
+    print(
+        "Client connected:",
+        address,
+    )
+
 
     try:
-        # citeste tipul mesajului trimis de client
-        message_type = receive_message_type(connection)
+
+        message_type = receive_message_type(
+            connection
+        )
+
 
         if message_type == MESSAGE_START_SESSION:
-            print("Creating new Gemini session.")
+
+            print(
+                "Creating new Gemini session."
+            )
+
 
             dialog.reset_chat()
+
             laboratory_state.clear()
+
             session_manager.start_new_session()
 
             return
 
-        # daca mesajul nu e nici start session, nici audio request, e o eroare
+
+
         if message_type != MESSAGE_AUDIO_REQUEST:
-            raise RuntimeError("Expected audio request.")
 
-        # primeste fisierul audio trimis de client
-        received_file = receive_file(connection, received_audio_path)
+            raise RuntimeError(
+                "Expected audio request."
+            )
 
-        # proceseaza fisierul audio primit (transcriere + raspuns)
+
+
+        received_file = receive_file(
+            connection,
+            received_audio_path,
+        )
+
+
         process_audio_file(
             audio_path=received_file,
             connection=connection,
@@ -379,66 +578,113 @@ def handle_client(
             session_manager=session_manager,
         )
 
-    except Exception as error:
-        print("Client processing failed:", error)
 
-        # incearca sa trimita eroarea catre client, dar nu opri programul daca nu reuseste
+    except Exception as error:
+
+        print(
+            "Client processing failed:",
+            error,
+        )
+
+
         try:
-            send_error(connection, str(error))
+
+            send_error(
+                connection,
+                str(error),
+            )
+
         except Exception:
+
             pass
 
+
     finally:
+
         connection.close()
-        print("Client disconnected.")
+
+        print(
+            "Client disconnected."
+        )
+
 
 
 def main():
+
     args = parse_arguments()
 
-    received_audio_path = Path(args.received_audio)
 
-    chunks_directory = Path(args.answer_chunks_directory)
+    received_audio_path = Path(
+        args.received_audio
+    )
 
-    print("Loading components...")
 
-    # incarca toate componentele necesare (asr, retriever, dialog, tts etc)
-    asr = ASR(model_name=args.model)
+    chunks_directory = Path(
+        args.answer_chunks_directory
+    )
 
+
+    print(
+        "Loading components..."
+    )
+
+#instantiere CLASE
+    asr = ASR()
     context_selector = ContextSelector(knowledge_directory=args.knowledge)
-
     retriever = Retriever(knowledge_directory=args.knowledge)
-
     prompt_builder = PromptBuilder()
-
-    # gemini session creata la pornirea serverului
+    # Gemini session creată la pornirea serverului
     dialog = Dialog()
-
     tts = RomanianTTS(model_path=args.tts_model)
-
     laboratory_state = LaboratoryState()
-
     session_manager = SessionManager()
 
-    # creeaza socket-ul serverului (tcp/ip)
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # permite refolosirea rapida a adresei, fara sa astepte eliberarea ei
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    server.bind((args.host, args.port))
+    server = socket.socket(
+        socket.AF_INET,
+        socket.SOCK_STREAM,
+    )
 
-    # asculta conexiuni, cu o coada de maxim 5 conexiuni in asteptare
-    server.listen(5)
 
-    print("Server listening on {}:{}".format(args.host, args.port))
+    server.setsockopt(
+        socket.SOL_SOCKET,
+        socket.SO_REUSEADDR,
+        1,
+    )
+
+
+    server.bind(
+        (
+            args.host,
+            args.port,
+        )
+    )
+
+
+    server.listen(
+        5
+    )
+
+
+    print(
+        "Server listening on {}:{}".format(
+            args.host,
+            args.port,
+        )
+    )
+
+
 
     try:
-        while True:
-            # accepta o conexiune noua de la un client
-            connection, address = server.accept()
 
-            # trateaza fiecare client intr-un thread separat, ca sa nu blocheze serverul
+        while True:
+
+            connection, address = (
+                server.accept()
+            )
+
+
             thread = threading.Thread(
                 target=handle_client,
                 args=(
@@ -460,14 +706,24 @@ def main():
                 daemon=True,
             )
 
+
             thread.start()
 
+
+
     except KeyboardInterrupt:
-        print("Stopping server...")
+
+        print(
+            "Stopping server..."
+        )
+
 
     finally:
+
         server.close()
 
 
+
 if __name__ == "__main__":
+
     main()

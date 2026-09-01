@@ -1,0 +1,8 @@
+openai-whisper
+torch
+soundfile
+numpy
+rapidfuzz
+google-genai
+python-dotenv
+sounddevice
