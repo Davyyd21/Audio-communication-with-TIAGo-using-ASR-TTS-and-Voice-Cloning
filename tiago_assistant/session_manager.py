@@ -10,14 +10,12 @@ class SessionState(Enum):
     STANDBY = "standby"
 
 
-
 class SessionManager:
     """
     Gestionează starea sesiunii conversaționale TIAGo.
 
     ACTIVE:
         Robotul ascultă, procesează întrebări și răspunde.
-
     STANDBY:
         Robotul este oprit temporar și așteaptă
         pornirea unei conversații noi.
@@ -28,74 +26,45 @@ class SessionManager:
     - detectarea comenzilor de pornire.
     """
 
-
     def __init__(self) -> None:
-
         self.state = SessionState.ACTIVE
-
-
 
     def enter_standby(self) -> None:
         """
         Pune TIAGo în modul standby.
         """
-
         self.state = SessionState.STANDBY
-
-        print(
-            "TIAGo entered standby mode."
-        )
-
-
+        print("TIAGo entered standby mode.")
 
     def start_new_session(self) -> None:
         """
         Pornește o conversație nouă.
         """
-
         self.state = SessionState.ACTIVE
-
-        print(
-            "TIAGo started a new conversation."
-        )
-
-
+        print("TIAGo started a new conversation.")
 
     def is_active(self) -> bool:
         """
         Verifică dacă robotul este activ.
         """
-
-        return (
-            self.state == SessionState.ACTIVE
-        )
-
-
+        return self.state == SessionState.ACTIVE
 
     def is_standby(self) -> bool:
         """
         Verifică dacă robotul este în standby.
         """
-
-        return (
-            self.state == SessionState.STANDBY
-        )
-
-
+        return self.state == SessionState.STANDBY
 
     @staticmethod
-    def normalize_text(
-        text: str,
-    ) -> str:
+    def normalize_text(text: str) -> str:
         """
         Normalizează textul primit de la Whisper.
-
         Whisper poate returna:
         - diacritice;
         - variații de scriere;
         - litere mari/mici.
         """
-
+        # inlocuim diacriticele manual ca sa comparam usor cu listele de comenzi de mai jos
         return (
             text.lower()
             .strip()
@@ -108,28 +77,16 @@ class SessionManager:
             .replace("ţ", "t")
         )
 
-
-
-    def is_stop_command(
-        self,
-        text: str,
-    ) -> bool:
+    def is_stop_command(self, text: str) -> bool:
         """
         Detectează comenzi vocale pentru standby.
-
         Exemple acceptate:
         - TIAGo stop
         - TIAGo oprește
         - stop TIAGo
         - oprește-te TIAGo
         """
-
-        normalized = (
-            self.normalize_text(
-                text
-            )
-        )
-
+        normalized = self.normalize_text(text)
 
         stop_commands = [
             "tiago stop",
@@ -142,33 +99,17 @@ class SessionManager:
             "treci in standby",
         ]
 
+        return any(command in normalized for command in stop_commands)
 
-        return any(
-            command in normalized
-            for command in stop_commands
-        )
-
-
-
-    def is_start_command(
-        self,
-        text: str,
-    ) -> bool:
+    def is_start_command(self, text: str) -> bool:
         """
         Detectează comenzi pentru revenirea din standby.
-
         Exemple:
         - TIAGo pornește
         - începe conversația
         - revino
         """
-
-        normalized = (
-            self.normalize_text(
-                text
-            )
-        )
-
+        normalized = self.normalize_text(text)
 
         start_commands = [
             "tiago porneste",
@@ -180,8 +121,4 @@ class SessionManager:
             "start conversatie",
         ]
 
-
-        return any(
-            command in normalized
-            for command in start_commands
-        )
+        return any(command in normalized for command in start_commands)
