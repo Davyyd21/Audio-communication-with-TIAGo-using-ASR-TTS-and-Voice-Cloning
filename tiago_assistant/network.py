@@ -26,39 +26,22 @@ MESSAGE_START_SESSION = b"\x10"
 MESSAGE_AUDIO_REQUEST = b"\x11"
 
 
-
-def receive_exactly(
-    connection: socket.socket,
-    number_of_bytes: int,
-) -> bytes:
+def receive_exactly(connection: socket.socket, number_of_bytes: int) -> bytes:
     """
     Primește exact numărul de bytes cerut.
     """
-
+    # recv() poate returna mai putini bytes decat am cerut, deci trebuie sa mai cerem pana umplem tot
     received_data = bytearray()
 
-
     while len(received_data) < number_of_bytes:
-
-        chunk = connection.recv(
-            number_of_bytes - len(received_data)
-        )
-
+        chunk = connection.recv(number_of_bytes - len(received_data))
 
         if not chunk:
+            raise ConnectionError("Connection closed before receiving all data.")
 
-            raise ConnectionError(
-                "Connection closed before receiving all data."
-            )
-
-
-        received_data.extend(
-            chunk
-        )
-
+        received_data.extend(chunk)
 
     return bytes(received_data)
-
 
 
 # ==================================================
@@ -66,29 +49,15 @@ def receive_exactly(
 # ==================================================
 
 
-def send_message_type(
-    connection: socket.socket,
-    message_type: bytes,
-) -> None:
+def send_message_type(connection: socket.socket, message_type: bytes) -> None:
     """
     Trimite un mesaj de control de 1 byte.
     """
-
-    connection.sendall(
-        message_type
-    )
+    connection.sendall(message_type)
 
 
-
-def receive_message_type(
-    connection: socket.socket,
-) -> bytes:
-
-    message_type = receive_exactly(
-        connection,
-        1,
-    )
-
+def receive_message_type(connection: socket.socket) -> bytes:
+    message_type = receive_exactly(connection, 1)
 
     valid_types = (
         MESSAGE_ERROR,
@@ -99,15 +68,8 @@ def receive_message_type(
         MESSAGE_AUDIO_REQUEST,
     )
 
-
     if message_type not in valid_types:
-
-        raise ConnectionError(
-            "Unknown message type: {}".format(
-                message_type
-            )
-        )
-
+        raise ConnectionError("Unknown message type: {}".format(message_type))
 
     return message_type
 
@@ -117,52 +79,31 @@ def receive_message_type(
 # ==================================================
 
 
-def send_start_session(
-    connection: socket.socket,
-) -> None:
+def send_start_session(connection: socket.socket) -> None:
     """
     Client -> Server
 
     Cere o conversație nouă.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_START_SESSION,
-    )
+    send_message_type(connection, MESSAGE_START_SESSION)
 
 
-
-def send_audio_request(
-    connection: socket.socket,
-) -> None:
+def send_audio_request(connection: socket.socket) -> None:
     """
     Client -> Server
 
     Anunță că urmează trimiterea unui WAV.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_AUDIO_REQUEST,
-    )
+    send_message_type(connection, MESSAGE_AUDIO_REQUEST)
 
 
-
-def send_standby(
-    connection: socket.socket,
-) -> None:
+def send_standby(connection: socket.socket) -> None:
     """
     Server -> Client
 
     Pune TIAGo în standby.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_STANDBY,
-    )
-
+    send_message_type(connection, MESSAGE_STANDBY)
 
 
 # ==================================================
@@ -170,138 +111,62 @@ def send_standby(
 # ==================================================
 
 
-def send_file(
-    connection: socket.socket,
-    file_path: Union[str, Path],
-) -> None:
+def send_file(connection: socket.socket, file_path: Union[str, Path]) -> None:
     """
     Trimite un fișier:
 
     1. dimensiune fișier (8 bytes)
     2. conținut fișier
     """
-
-    path = Path(
-        file_path
-    )
-
+    path = Path(file_path)
 
     if not path.exists():
-
-        raise FileNotFoundError(
-            "File not found: {}".format(
-                path
-            )
-        )
-
+        raise FileNotFoundError("File not found: {}".format(path))
 
     if not path.is_file():
-
-        raise ValueError(
-            "Path is not a file: {}".format(
-                path
-            )
-        )
-
+        raise ValueError("Path is not a file: {}".format(path))
 
     file_size = path.stat().st_size
 
+    # trimitem intai marimea fisierului pe 8 bytes, ca cel care primeste sa stie cati bytes sa astepte
+    connection.sendall(struct.pack("!Q", file_size))
 
-    connection.sendall(
-        struct.pack(
-            "!Q",
-            file_size,
-        )
-    )
-
-
-    with path.open(
-        "rb"
-    ) as file:
-
+    with path.open("rb") as file:
         while True:
-
-            chunk = file.read(
-                BUFFER_SIZE
-            )
-
+            chunk = file.read(BUFFER_SIZE)
 
             if not chunk:
-
                 break
 
-
-            connection.sendall(
-                chunk
-            )
+            connection.sendall(chunk)
 
 
-
-def receive_file(
-    connection: socket.socket,
-    output_path: Union[str, Path],
-) -> Path:
+def receive_file(connection: socket.socket, output_path: Union[str, Path]) -> Path:
     """
     Primește un fișier.
     """
+    path = Path(output_path)
 
-    path = Path(
-        output_path
-    )
+    path.parent.mkdir(parents=True, exist_ok=True)
 
+    header = receive_exactly(connection, HEADER_SIZE)
 
-    path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-
-    header = receive_exactly(
-        connection,
-        HEADER_SIZE,
-    )
-
-
-    file_size = struct.unpack(
-        "!Q",
-        header,
-    )[0]
-
+    file_size = struct.unpack("!Q", header)[0]
 
     remaining_bytes = file_size
 
-
-    with path.open(
-        "wb"
-    ) as file:
-
+    with path.open("wb") as file:
         while remaining_bytes > 0:
-
-            chunk = connection.recv(
-                min(
-                    BUFFER_SIZE,
-                    remaining_bytes,
-                )
-            )
-
+            chunk = connection.recv(min(BUFFER_SIZE, remaining_bytes))
 
             if not chunk:
+                raise ConnectionError("Connection closed while receiving file.")
 
-                raise ConnectionError(
-                    "Connection closed while receiving file."
-                )
-
-
-            file.write(
-                chunk
-            )
-
+            file.write(chunk)
 
             remaining_bytes -= len(chunk)
 
-
     return path
-
 
 
 # ==================================================
@@ -309,39 +174,19 @@ def receive_file(
 # ==================================================
 
 
-def send_audio_chunk(
-    connection: socket.socket,
-    audio_path: Union[str, Path],
-) -> None:
+def send_audio_chunk(connection: socket.socket, audio_path: Union[str, Path]) -> None:
     """
     Trimite un fragment audio către client.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_AUDIO_CHUNK,
-    )
+    send_message_type(connection, MESSAGE_AUDIO_CHUNK)
+    send_file(connection, audio_path)
 
 
-    send_file(
-        connection,
-        audio_path,
-    )
-
-
-
-def send_end_response(
-    connection: socket.socket,
-) -> None:
+def send_end_response(connection: socket.socket) -> None:
     """
     Anunță clientul că răspunsul s-a terminat.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_END_RESPONSE,
-    )
-
+    send_message_type(connection, MESSAGE_END_RESPONSE)
 
 
 # ==================================================
@@ -349,25 +194,12 @@ def send_end_response(
 # ==================================================
 
 
-def send_error(
-    connection: socket.socket,
-    message: str,
-) -> None:
+def send_error(connection: socket.socket, message: str) -> None:
     """
     Trimite o eroare către client.
     """
-
-    send_message_type(
-        connection,
-        MESSAGE_ERROR,
-    )
-
-
-    send_text(
-        connection,
-        message,
-    )
-
+    send_message_type(connection, MESSAGE_ERROR)
+    send_text(connection, message)
 
 
 # ==================================================
@@ -375,58 +207,25 @@ def send_error(
 # ==================================================
 
 
-def send_text(
-    connection: socket.socket,
-    message: str,
-) -> None:
+def send_text(connection: socket.socket, message: str) -> None:
     """
     Trimite text cu dimensiune prefixată.
     """
+    encoded_message = message.encode("utf-8")
 
-    encoded_message = message.encode(
-        "utf-8"
-    )
-
-
-    connection.sendall(
-        struct.pack(
-            "!Q",
-            len(encoded_message),
-        )
-    )
+    # acelasi principiu ca la fisiere: intai lungimea, apoi continutul
+    connection.sendall(struct.pack("!Q", len(encoded_message)))
+    connection.sendall(encoded_message)
 
 
-    connection.sendall(
-        encoded_message
-    )
-
-
-
-def receive_text(
-    connection: socket.socket,
-) -> str:
+def receive_text(connection: socket.socket) -> str:
     """
     Primește text cu dimensiune prefixată.
     """
+    header = receive_exactly(connection, HEADER_SIZE)
 
-    header = receive_exactly(
-        connection,
-        HEADER_SIZE,
-    )
+    message_size = struct.unpack("!Q", header)[0]
 
+    message = receive_exactly(connection, message_size)
 
-    message_size = struct.unpack(
-        "!Q",
-        header,
-    )[0]
-
-
-    message = receive_exactly(
-        connection,
-        message_size,
-    )
-
-
-    return message.decode(
-        "utf-8"
-    )
+    return message.decode("utf-8")
